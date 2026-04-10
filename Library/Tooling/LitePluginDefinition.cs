@@ -12,7 +12,7 @@ internal class LitePluginDefinition
 
     public string ToSignature()
     {
-        var paramsStr = string.Join(",", Parameters.Select(p => p.Name));
+        var paramsStr = string.Join(",", Parameters.Select(p => $"<{p.Name}>"));
         var desc = string.IsNullOrEmpty(Description) ? "" : $" - {Description}";
         return $"{Name}{{{paramsStr}}}{desc}";
     }
