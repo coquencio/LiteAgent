@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 
 
-namespace ToonPlugin.Tooling;
-internal class ToonPluginDefinition
+namespace LiteAgent.Tooling;
+internal class LitePluginDefinition
 {
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }

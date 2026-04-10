@@ -1,15 +1,15 @@
-﻿using ToonPlugin.Prompting;
-using ToonPlugin.Tooling;
+﻿using LiteAgent.Prompting;
+using LiteAgent.Tooling;
 using System.Collections;
 using System.Reflection;
 
-namespace ToonPlugin.Actions;
-public class ToonPluginOrchestrator
+namespace LiteAgent.Actions;
+public class LiteOrchestrator
 {
-    private readonly ToonPluginRegistry _registry = new();
+    private readonly LitePluginRegistry _registry = new();
     private readonly PluginParser _parser = new();
-    private readonly ToonPromptGenerator _generator;
-    public ToonPluginOrchestrator()
+    private readonly PromptGenerator _generator;
+    public LiteOrchestrator()
     {
         _generator = new(_registry);
     }
