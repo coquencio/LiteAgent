@@ -22,7 +22,7 @@ ToonPlugin forces the LLM to communicate using a compact, text-based notation. B
 
 ## Project Structure
 The library is organized into three main pillars:
-* **Tooling:** Attribute-based registry to discover and define "Claws" (tools).
+* **Tooling:** Attribute-based registry to discover and define "plugins" (tools).
 * **Prompting:** Generates high-density system instructions for the LLM.
 * **Actions:** Parsers and Orchestrators that intercept LLM output and execute C# code.
 
