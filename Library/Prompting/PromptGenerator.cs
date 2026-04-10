@@ -1,11 +1,11 @@
 ﻿
-using ToonPlugin.Tooling;
+using LiteAgent.Tooling;
 using System.Text;
 
-namespace ToonPlugin.Prompting;
-internal class ToonPromptGenerator (ToonPluginRegistry registry)
+namespace LiteAgent.Prompting;
+internal class PromptGenerator (LitePluginRegistry registry)
 {
-    private readonly ToonPluginRegistry _registry = registry;
+    private readonly LitePluginRegistry _registry = registry;
     private const string ProtocolHeader = "## TOON PROTOCOL (Token-Oriented Object Notation) ACTIVE";
 
     public string GetSystemPrompt()
@@ -21,7 +21,7 @@ internal class ToonPromptGenerator (ToonPluginRegistry registry)
         sb.AppendLine("3. No spaces between arguments and braces unless they are part of the value.");
         sb.AppendLine("4. If no tool is needed, respond with standard natural language.");
         sb.AppendLine();
-        sb.AppendLine("### AVAILABLE CLAWS (Catalog):");
+        sb.AppendLine("### AVAILABLE Plugins (Catalog):");
         sb.AppendLine(toolsCatalog);
         sb.AppendLine();
         sb.AppendLine("### EXAMPLE:");

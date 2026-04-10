@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.RegularExpressions;
 
-namespace ToonPlugin.Actions;
+namespace LiteAgent.Actions;
 
 internal record PluginCall(string FunctionName, string[] Arguments);
 internal class PluginParser
