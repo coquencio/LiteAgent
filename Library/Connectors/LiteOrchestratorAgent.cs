@@ -2,15 +2,15 @@
 using LiteAgent.Constants;
 
 namespace LiteAgent.Connectors;
-public class LiteAgent
+public class LiteOrchestratorAgent
 {
-    private readonly LiteOrchestrator _orchestrator;
+    private readonly LiteActions _orchestrator;
     private readonly ILiteClient _aiClient;
     private readonly List<LiteMessage> _history = new();
 
-    public LiteAgent(ILiteClient aiClient)
+    public LiteOrchestratorAgent(ILiteClient aiClient)
     {
-        _orchestrator = new LiteOrchestrator();
+        _orchestrator = new LiteActions();
         _aiClient = aiClient;
     }
 

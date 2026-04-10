@@ -1,94 +1,126 @@
 # LiteAgent (Preview)
 
-LiteAgent is a high-performance, token-efficient tool-calling library for .NET. It is designed to replace verbose JSON payloads in Large Language Model (LLM) workflows with **TOON (Token-Oriented Object Notation)** and provide a lightweight agentic runtime.
+LiteAgent is a high-performance, token-efficient tool-calling library for .NET. It replaces verbose JSON payloads in LLM workflows with **TOON (Token-Oriented Object Notation)**, offering a lightweight agentic runtime that saves up to **80%** in input/output tokens.
 
-> **Status:** Proof of Concept (POC) / Early Preview. APIs and specifications are subject to change.
-
----
-
-## The Problem: The "JSON Tax"
-
-Standard LLM tool calling (such as function calling or plugin-based approaches) relies on heavy JSON schemas for definitions and escaped JSON strings for execution. This consumes a significant portion of the context window, increasing both cost and latency.
+> **Status:** Proof of Concept (POC). Built for developers who need agentic capabilities without the overhead of heavy frameworks like Semantic Kernel.
 
 ---
 
-## The Solution: LiteAgent + TOON Protocol
+## The TOON Advantage
 
-LiteAgent introduces a compact, text-based communication layer using **TOON**.
+Standard LLM tool calling is "token-expensive" because it relies on massive JSON schemas. **TOON** flattens these structures into a dense, text-based format that LLMs understand natively.
 
-By combining:
-- A specialized system prompt generator  
-- A lightweight parser  
-- A minimal orchestration layer  
-
-LiteAgent reduces the footprint of tool calling by up to **80%**, enabling faster and cheaper LLM interactions.
-
----
-
-## Visual Comparison
-
-- **Standard JSON:**  
-  `{"tool_calls":[{"id":"123","function":{"name":"get_weather","arguments":"{\"city\":\"London\"}"}}]}`  
-  (~60 tokens)
-
-- **TOON (LiteAgent):**  
-  `get_weather{London}`  
-  (~6 tokens)
-
----
-
-## Key Features
-
-- **Zero-JSON Definitions**  
-  No more massive JSON schemas in system prompts.
-
-- **Token-Efficient Protocol (TOON)**  
-  Compact syntax optimized for LLM communication.
-
-- **Strongly Typed Mapping**  
-  Automatic conversion from TOON text into C# types (`int`, `bool`, `DateTime`, etc.).
-
-- **Lightweight Orchestration**  
-  Built-in orchestration via `LiteOrchestrator` for handling tool execution loops.
-
-- **Plugin System**  
-  Simple and extensible plugin model powered by attributes and registries.
-
-- **Async Native**  
-  First-class support for `Task` and `Task<T>`.
+- **Standard JSON:** `{"tool_calls":[{"id":"1","function":{"name":"greet","arguments":"{\"name\":\"Alice\"}"}}]}` (~60 tokens)
+- **TOON (LiteAgent):** `greet{Alice}` (~6 tokens)
 
 ---
 
 ## Project Structure
 
-LiteAgent is organized into three main pillars:
+Based on the current solution architecture:
 
-- **Tooling**  
-  Defines plugins and tool metadata  
-  (`LitePlugin`, `ToonPluginDefinition`, `ToonPluginRegistry`)
-
-- **Prompting**  
-  Generates high-density system prompts for LLMs  
-  (`PromptGenerator`)
-
-- **Actions**  
-  Handles parsing and execution of tool calls  
-  (`LiteOrchestrator`, `PluginParser`)
+- **Connectors:** Plug-and-play clients for Azure OpenAI using the official SDK (`ILiteClient`).
+- **Actions:** The core engine that parses TOON strings and executes C# methods via reflection (`LiteActions`, `PluginParser`).
+- **Tooling:** Simple attribute-based system (`[LitePlugin]`) to expose your code to the AI.
+- **Prompting:** Dynamic generation of high-density system instructions with automated parameter substitution logic.
 
 ---
 
-## Quick Start
+## Quick Start: Implementation Guide
 
-### 1. Define your Plugins
-
-Decorate your methods with the `[LitePlugin]` attribute:
+### 1. Define your Tools (Plugins)
+Create a class with methods decorated with `[LitePlugin]`. The system will automatically map arguments from the TOON text.
 
 ```csharp
-public class SearchTools
+using LiteAgent.Tooling;
+
+public class BusinessTools
 {
-    [LitePlugin("Search for job vacancies by technology and location")]
-    public string SearchJobs(string tech, string location)
+    [LitePlugin("Sends a greet asking for the name of the person")]
+    public string Greet(string name)
     {
-        return "Found 3 jobs at KPMG, Microsoft, and Tesla";
+        return $"Hello, {name}! The tool was executed successfully.";
+    }
+
+    [LitePlugin("Retrieves a list of available items by category")]
+    public List<string> GetInventory(string category)
+    {
+        return new List<string> { "Laptop", "Mouse", "Keyboard" };
     }
 }
+```
+
+### 2. Configure `Program.cs` (Dependency Injection)
+LiteAgent integrates seamlessly with the .NET Generic Host and Dependency Injection.
+
+```csharp
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using LiteAgent.Connectors;
+
+var builder = Host.CreateApplicationBuilder(args);
+
+// 1. Register the AI Connector (Azure OpenAI)
+builder.Services.AddSingleton<ILiteClient>(sp => 
+    new LiteAzureOpenAIClient(
+        apiKey: "your-azure-api-key",
+        deployment: "gpt-4o-mini-talent",
+        endpoint: "https://talentassistant-resource.openai.azure.com"
+    ));
+
+// 2. Register the Orchestrator Agent
+builder.Services.AddTransient<LiteOrchestratorAgent>();
+
+using IHost host = builder.Build();
+```
+
+### 3. Run the Agent
+The `LiteOrchestratorAgent` manages the autonomous cycle (Think-Act-Observe) until the task is finished.
+
+```csharp
+var agent = host.Services.GetRequiredService<LiteOrchestratorAgent>();
+
+// Configure generation parameters (Optional)
+agent.Configure(temperature: 0.5f, maxTokens: 1000);
+
+// Register your plugins
+agent.RegisterTools(new BusinessTools());
+
+// Start the conversation
+string response = await agent.SendMessageAsync("Say hi to Jorge and check the office inventory");
+
+Console.WriteLine($"Agent: {response}");
+```
+
+---
+
+## Technical Features
+
+### Recursive TOON Serialization
+The internal serialization engine handles complex nested structures by converting them into a compact notation optimized for LLM context:
+- **Objects:** `(name:jorge,role:dev)`
+- **Collections:** `[item1|item2|item3]`
+- **Nesting:** `(id:1,tags:[c#|ai],meta:(ver:1.0))`
+
+### Built-in Agentic Loop
+When calling `SendMessageAsync`, the agent enters an autonomous cycle:
+1. **Prompt:** Sends chat history + dynamic TOON system instructions to the LLM.
+2. **Execute:** If the LLM responds with `plugin_name{args}`, the agent executes the C# method.
+3. **Observe:** The execution result is fed back to the LLM as a `TOOL_RESULT`.
+4. **Finalize:** The cycle continues until the LLM generates a final natural language response for the user.
+
+---
+
+## Roadmap
+- [ ] **Advanced History Management:**
+    - Configure Max Messages window.
+    - Stateless execution support.
+    - Automated history summarization for context optimization.
+- [ ] **Complex Orchestration:**
+    - Tool chaining (multi-step tool execution in a single turn).
+- [ ] Support for `CancellationToken` in long-running loops.
+- [ ] Tool output size capping to prevent context overflow.
+- [ ] Source Generators for Reflection-free execution (AOT friendly).
+
+## License
+MIT

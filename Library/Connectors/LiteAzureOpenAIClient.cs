@@ -1,43 +1,42 @@
-﻿using Azure;
-using Azure.AI.OpenAI;
-using LiteAgent.Constants;
+﻿using LiteAgent.Constants;
+using OpenAI;
 using OpenAI.Chat;
+using System.ClientModel;
 
 namespace LiteAgent.Connectors;
 
 public class LiteAzureOpenAIClient : ILiteClient
 {
-    private AzureOpenAIClient _chatClient;
+    private ChatClient _chatClient;
     private readonly string _apiKey;
     private readonly string _endpoint;
-    private readonly string _model;
+    private readonly string _deployment;
     private int _maxTokens;
     private float _temperature;
-    public LiteAzureOpenAIClient(string apiKey, string model, string endpoint)
+    public LiteAzureOpenAIClient(string apiKey, string deployment, string endpoint)
     {
         _apiKey = apiKey;
-        _model = model;
+        _deployment = deployment;
         _endpoint = endpoint;
         Setup();
     }
     public async Task<string> GetCompletionAsync(List<LiteMessage> history)
     {
         var messages = new List<ChatMessage>();
-        history.ForEach(h =>       
-                messages.Add(h.Role.Equals(Roles.Assistant)?
-                    new SystemChatMessage(h.Content) :
-                    new UserChatMessage(h.Content))
-                );
-
-        var client = _chatClient.GetChatClient(_model);
-
+        foreach (var h in history)
+        {
+            if (h.Role == Roles.System) messages.Add(new SystemChatMessage(h.Content));
+            else if (h.Role == Roles.Assistant) messages.Add(new AssistantChatMessage(h.Content));
+            else messages.Add(new UserChatMessage(h.Content));
+        }
+        
         var options = new ChatCompletionOptions()
         {
             Temperature = _temperature,
             MaxOutputTokenCount = _maxTokens
         };
 
-        var response = await client.CompleteChatAsync(messages.ToArray(), options);
+        var response = await _chatClient.CompleteChatAsync(messages.ToArray(), options);
 
         return response.Value.Content[0].Text;
     }
@@ -50,7 +49,13 @@ public class LiteAzureOpenAIClient : ILiteClient
 
     public void Setup()
     {
-        _chatClient = new AzureOpenAIClient(new Uri(_endpoint), new AzureKeyCredential(_apiKey));
-    }
+        _chatClient = new(
+            credential: new ApiKeyCredential(_apiKey),
+            model: _deployment,
+            options: new OpenAIClientOptions()
+            {
+                Endpoint = new($"{_endpoint}"),
+            });
+        }
 }
 

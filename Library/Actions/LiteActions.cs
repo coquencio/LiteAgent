@@ -4,12 +4,12 @@ using System.Collections;
 using System.Reflection;
 
 namespace LiteAgent.Actions;
-public class LiteOrchestrator
+public class LiteActions
 {
     private readonly LitePluginRegistry _registry = new();
     private readonly PluginParser _parser = new();
     private readonly PromptGenerator _generator;
-    public LiteOrchestrator()
+    public LiteActions()
     {
         _generator = new(_registry);
     }
