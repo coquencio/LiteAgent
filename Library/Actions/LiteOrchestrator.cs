@@ -13,11 +13,11 @@ public class LiteOrchestrator
     {
         _generator = new(_registry);
     }
-    public void RegisterKit<T>(T instance) where T : class =>
+    internal void RegisterKit<T>(T instance) where T : class =>
         _registry.RegisterPlugins(instance);
 
-    public string GetSystemInstructions() => _generator.GetSystemPrompt();
-    public async Task<string> ExecuteMatchAsync(string llmResponse)
+    internal string GetSystemInstructions() => _generator.GetSystemPrompt();
+    internal async Task<string> ExecuteMatchAsync(string llmResponse)
     {
         if (!_parser.IsToonCall(llmResponse)) 
             return llmResponse;
@@ -31,7 +31,7 @@ public class LiteOrchestrator
         var definition = _registry.GetDefinition(call.FunctionName);
         if (definition == null)
         {
-            return $"Error: Claw '{call.FunctionName}' not found";
+            return $"Error: plugin '{call.FunctionName}' not found";
         }
 
         try
