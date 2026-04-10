@@ -116,6 +116,10 @@ When calling `SendMessageAsync`, the agent enters an autonomous cycle:
     - Configure Max Messages window.
     - Stateless execution support.
     - Automated history summarization for context optimization.
+- [ ] **Multi-Model Support (Connectors):**
+    - Google Gemini Integration.
+    - DeepSeek Integration.
+    - Anthropic Claude Integration.
 - [ ] **Complex Orchestration:**
     - Tool chaining (multi-step tool execution in a single turn).
 - [ ] Support for `CancellationToken` in long-running loops.
