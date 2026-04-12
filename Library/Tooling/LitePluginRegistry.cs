@@ -5,25 +5,30 @@ internal class LitePluginRegistry
 {
     private readonly Dictionary<string, LitePluginDefinition> _plugins = new();
 
-    public void RegisterPlugins<T>(T instance) where T : class
+    public void RegisterPlugins(params LitePluginBase[] instances)
     {
-        var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Instance)
+        var methods = typeof(LitePluginBase).GetMethods(BindingFlags.Public | BindingFlags.Instance)
                                .Where(m => m.GetCustomAttribute<LitePlugin>() != null);
-
-        foreach (var method in methods)
+        foreach (var instance in instances)
         {
-            var attr = method.GetCustomAttribute<LitePlugin>();
-            var definition = new LitePluginDefinition
+            foreach (var method in methods)
             {
-                Name = method.Name.ToLower(),
-                Description = attr?.Description,
-                Method = method,
-                TargetInstance = instance,
-                Parameters = method.GetParameters()
-            };
-
-            _plugins[definition.Name] = definition;
+                var attr = method.GetCustomAttribute<LitePlugin>();
+                var definition = new LitePluginDefinition
+                {
+                    Name = method.Name.ToLower(),
+                    Description = attr?.Description,
+                    Method = method,
+                    TargetInstance = instance,
+                    Parameters = method.GetParameters()
+                };
+                if (_plugins.ContainsKey(definition.Name))
+                    throw new InvalidOperationException($"A plugin with the name '{definition.Name}' is already registered.");
+               
+                _plugins[definition.Name] = definition;
+            }
         }
+         
     }
     public LitePluginDefinition? GetDefinition(string functionName)
     {

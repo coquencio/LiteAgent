@@ -2,7 +2,7 @@
 
 namespace ChatConsoleApp
 {
-    internal class Plugins
+    internal class Plugins : LitePluginBase
     {
         [LitePlugin("Sends a greet asking for the name of the person")]
         public string Greet(string name)

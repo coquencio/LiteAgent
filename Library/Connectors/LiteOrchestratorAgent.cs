@@ -1,5 +1,6 @@
 ﻿using LiteAgent.Actions;
 using LiteAgent.Constants;
+using LiteAgent.Tooling;
 
 namespace LiteAgent.Connectors;
 public class LiteOrchestratorAgent
@@ -14,9 +15,34 @@ public class LiteOrchestratorAgent
         _aiClient = aiClient;
     }
 
-    public void RegisterTools<T>(T instance) where T : class =>
-        _orchestrator.RegisterKit(instance);
+    internal LiteOrchestratorAgent WithConfiguration(int? maxTokens = default, float? temperature = default, params LitePluginBase[] instances)
+    {
+        if (maxTokens != null)
+            _aiClient.SetMaxTokens(maxTokens.Value);
 
+        if (temperature != null)
+            _aiClient.SetTemperature(temperature.Value);
+        
+        if (instances != null && instances.Length > 0)
+            RegisterTools(instances);
+        
+        return this;
+    }
+
+
+    /// <summary>
+    /// Registers one or more LitePluginBase tool instances with the orchestrator.
+    /// </summary>
+    /// <param name="instances">The plugin/tool instances to register.</param>
+    public void RegisterTools(params LitePluginBase[] instances) =>
+        _orchestrator.RegisterKit(instances);
+
+
+    /// <summary>
+    /// Configures the AI client with the specified temperature and maximum token count.
+    /// </summary>
+    /// <param name="temperature">The temperature value for the AI model (default is 0.7).</param>
+    /// <param name="maxTokens">The maximum number of tokens for the AI model (default is 1000).</param>
     public void Configure(float temperature = 0.7f, int maxTokens = 1000)
     {
         _aiClient.SetTemperature(temperature);
