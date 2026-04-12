@@ -8,6 +8,7 @@ public class LiteOrchestratorAgent
     private readonly LiteActions _orchestrator;
     private readonly ILiteClient _aiClient;
     private readonly List<LiteMessage> _history = new();
+    private string _customContext = string.Empty;
 
     public LiteOrchestratorAgent(ILiteClient aiClient)
     {
@@ -49,12 +50,29 @@ public class LiteOrchestratorAgent
         _aiClient.SetMaxTokens(maxTokens);
     }
 
-    public async Task<string> SendMessageAsync(string userMessage)
+    /// <summary>
+    /// Adds custom context information for the agent to use in its responses. This method is optional and can be used to provide additional instructions or background for the agent.
+    /// </summary>
+    /// <param name="context">The custom context string to append for the agent.</param>
+    public void AddContext(string context)
+    {
+        _customContext += context + "\n";
+    }
+    /// <summary>
+    /// Sends a message to the agent and returns the response. Optionally controls whether the agent maintains conversation history.
+    /// </summary>
+    /// <param name="userMessage">The message from the user to send to the agent.</param>
+    /// <param name="stateless">If true, the agent will not remember previous messages after responding; if false, conversation history is preserved for future interactions.</param>
+    /// <returns>The agent's response as a string.</returns>
+    public async Task<string> SendMessageAsync(string userMessage, bool stateless = true)
     {
         // 1. Initialize history with System Instructions if empty
         if (_history.Count == 0)
         {
             _history.Add(new LiteMessage(Roles.System, _orchestrator.GetSystemInstructions()));
+            
+            if (!string.IsNullOrWhiteSpace(_customContext))
+                _history.Add(new LiteMessage(Roles.System, "Without ignoring the previous instructions, " + _customContext));
         }
 
         _history.Add(new LiteMessage(Roles.User, userMessage));
@@ -71,6 +89,10 @@ public class LiteOrchestratorAgent
             if (executionResult == rawResponse)
             {
                 _history.Add(new LiteMessage(Roles.Assistant, rawResponse));
+                
+                if (stateless)
+                    _history.Clear();
+
                 return rawResponse;
             }
 
