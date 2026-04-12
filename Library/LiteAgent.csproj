@@ -4,10 +4,26 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>LiteAgent</PackageId>
+    <Version>0.1.0-preview1</Version>
+    <Authors>Coquencio</Authors>
+    <Description>A high-performance, token-efficient tool-calling library for .NET. Replaces JSON with TOON for 80% token savings.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Coquencio/LiteAgent</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Coquencio/LiteAgent</RepositoryUrl>
+    <PackageTags>AI;Agent;LLM;OpenAI;ToolCalling;TOON;Azure</PackageTags>
+    
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
