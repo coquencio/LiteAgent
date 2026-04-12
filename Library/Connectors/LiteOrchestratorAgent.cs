@@ -66,7 +66,7 @@ public class LiteOrchestratorAgent
             _history.Add(new LiteMessage(Roles.System, _orchestrator.GetSystemInstructions()));
             
             if (!string.IsNullOrWhiteSpace(_customContext))
-                _history.Add(new LiteMessage(Roles.System, _customContext));
+                _history.Add(new LiteMessage(Roles.System, "Without ignoring the previous instructions, " + _customContext));
         }
 
         _history.Add(new LiteMessage(Roles.User, userMessage));
