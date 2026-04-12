@@ -13,7 +13,7 @@ public class LiteActions
     {
         _generator = new(_registry);
     }
-    internal void RegisterKit<T>(T instance) where T : class =>
+    internal void RegisterKit(params LitePluginBase[] instance)=>
         _registry.RegisterPlugins(instance);
 
     internal string GetSystemInstructions() => _generator.GetSystemPrompt();
