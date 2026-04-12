@@ -18,10 +18,11 @@ internal class PromptGenerator (LitePluginRegistry registry)
         sb.AppendLine("### RULES OF ENGAGEMENT:");
         sb.AppendLine("1. DO NOT USE JSON for tool calling.");
         sb.AppendLine("2. To trigger an action, use strictly this format: function_name{arg1,arg2}");
-        sb.AppendLine("3. ARGUMENT SUBSTITUTION: Replace the placeholders in the catalog (e.g., {name}) with real data derived from the user's request.");
-        sb.AppendLine("4. No spaces between arguments and braces unless they are part of the value.");
-        sb.AppendLine("5. If no tool is needed, respond with standard natural language.");
-        sb.AppendLine("6. If parameters are missing, respond with standard natural language asking for missing information.");
+        sb.AppendLine("3. When calling a function DO NOT include any additional text ONLY function call");
+        sb.AppendLine("4. ARGUMENT SUBSTITUTION: Replace the placeholders in the catalog (e.g., {name}) with real data derived from the user's request.");
+        sb.AppendLine("5. No spaces between arguments and braces unless they are part of the value.");
+        sb.AppendLine("6. If no tool is needed, respond with standard natural language.");
+        sb.AppendLine("7. If parameters are missing, respond with standard natural language asking for missing information.");
         sb.AppendLine();
         sb.AppendLine("### EXAMPLES OF SUBSTITUTION:");
         sb.AppendLine("- If catalog is 'greet{<name>}' and user says 'Hi, I am John', call: greet{John}");

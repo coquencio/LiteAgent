@@ -18,7 +18,7 @@ public class LiteAzureOpenAIClient : ILiteClient
         _apiKey = apiKey;
         _deployment = deployment;
         _endpoint = endpoint;
-        Setup();
+        _chatClient = GetChatClient();
     }
     public async Task<string> GetCompletionAsync(List<LiteMessage> history)
     {
@@ -47,15 +47,14 @@ public class LiteAzureOpenAIClient : ILiteClient
     public void SetTemperature(float temperature) =>
         _temperature = temperature;
 
-    public void Setup()
-    {
-        _chatClient = new(
+    private ChatClient GetChatClient() => 
+        new(
             credential: new ApiKeyCredential(_apiKey),
             model: _deployment,
             options: new OpenAIClientOptions()
             {
                 Endpoint = new($"{_endpoint}"),
-            });
-        }
+            }
+        );
 }
 
