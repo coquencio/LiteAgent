@@ -11,8 +11,8 @@ public class LiteAzureOpenAIClient : ILiteClient
     private readonly string _apiKey;
     private readonly string _endpoint;
     private readonly string _deployment;
-    private int _maxTokens;
-    private float _temperature;
+    private int _maxTokens = 1000;
+    private float _temperature = 0.7f;
     public LiteAzureOpenAIClient(string apiKey, string deployment, string endpoint)
     {
         _apiKey = apiKey;
