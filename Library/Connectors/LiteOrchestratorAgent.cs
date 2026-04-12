@@ -8,6 +8,7 @@ public class LiteOrchestratorAgent
     private readonly LiteActions _orchestrator;
     private readonly ILiteClient _aiClient;
     private readonly List<LiteMessage> _history = new();
+    private string _customContext = string.Empty;
 
     public LiteOrchestratorAgent(ILiteClient aiClient)
     {
@@ -49,12 +50,23 @@ public class LiteOrchestratorAgent
         _aiClient.SetMaxTokens(maxTokens);
     }
 
+    /// <summary>
+    /// Adds custom context information for the agent to use in its responses. This method is optional and can be used to provide additional instructions or background for the agent.
+    /// </summary>
+    /// <param name="context">The custom context string to append for the agent.</param>
+    public void AddContext(string context)
+    {
+        _customContext += context + "\n";
+    }
     public async Task<string> SendMessageAsync(string userMessage)
     {
         // 1. Initialize history with System Instructions if empty
         if (_history.Count == 0)
         {
             _history.Add(new LiteMessage(Roles.System, _orchestrator.GetSystemInstructions()));
+            
+            if (!string.IsNullOrWhiteSpace(_customContext))
+                _history.Add(new LiteMessage(Roles.System, _customContext));
         }
 
         _history.Add(new LiteMessage(Roles.User, userMessage));
