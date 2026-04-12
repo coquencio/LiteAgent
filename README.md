@@ -104,6 +104,10 @@ var agent = host.Services.GetRequiredService<LiteOrchestratorAgent>();
 // Add custom instructions or personality at runtime
 agent.AddContext("You love to crack some silly jokes when returning final answers.");
 
+// Customize model settings at runtime
+agent.Configure(temperature: 0.7f, maxTokens: 1000);
+
+
 // Start the conversation (stateless: true clears history after the response)
 string response = await agent.SendMessageAsync("Greet Jorge and check the office inventory", stateless: true);
 
@@ -129,11 +133,27 @@ When using `AddPlugin<T>()`, the agent resolves the instance directly from your 
 
 -----
 
+## **Sequence Orchestrator (Pipelines)**
+
+LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips between the LLM and your server, the agent can plan and execute a complex sequence of plugins in a single turn using `executesequence`.
+
+### Features:
+
+  * **Zero-Latency Chaining:** Execute `Plugin A | Plugin B | Plugin C` entirely in C\#.
+  * **Indexed References:** Use `$1`, `$2`, etc., to pass results from previous steps to the next one.
+  * **Dot Notation Access:** Access specific properties of complex objects (e.g., `$1.id` or `$1.email`).
+  * **Type Discovery:** The system automatically exposes return types (like `(id:int,name:string)`) so the LLM knows exactly which properties are available for chaining.
+
+**Example:**
+`executesequence{get_user{Jorge}|get_balance{$1.id}|send_email{$1.email,$2}}`
+
+-----
+
 ## Roadmap
 
   - [ ] **Advanced History Management:** Max message window and summarization.
   - [ ] **Multi-Model Support:** Google Gemini, DeepSeek, and Anthropic connectors.
-  - [ ] **Complex Orchestration:** Multi-step tool chaining in a single turn.
+  - [X] **Complex Orchestration:** Multi-step tool chaining in a single turn.
   - [ ] **Source Generators:** AOT-friendly execution for high-performance environments.
 
 ## License

@@ -23,7 +23,10 @@ internal class LitePluginRegistry
             };
             if (_plugins.ContainsKey(definition.Name))
                 throw new InvalidOperationException($"A plugin with the name '{definition.Name}' is already registered.");
-               
+            
+            if (_plugins.ContainsKey("executesequence"))
+                throw new InvalidOperationException("Conflict detected: The plugin name 'ExecuteSequence' is reserved for the LiteAgent internal orchestration engine. Please use a different name for your custom plugin to avoid conflicts with the agentic chaining system.");
+
             _plugins[definition.Name] = definition;
         } 
     }
