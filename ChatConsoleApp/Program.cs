@@ -9,7 +9,7 @@ builder.Services.AddSingleton<GreetPlugins>();
 builder.Services.AddSingleton<InventoryPlugins>();
 
 builder.Services.AddAzureOpenAILiteClient(
-    "Your API Key",
+    "your api key",
     "gpt-4o-mini",
     "https://resource.openai.azure.com/openai/v1/"
 );
@@ -27,5 +27,5 @@ var app = builder.Build();
 
 var agent = app.Services.GetRequiredService<LiteOrchestratorAgent>();
 agent.AddContext("You love to crack some silly jokes when returning final answers to the user");
-string response = await agent.SendMessageAsync("Give me the inventory, category is office", true);
+string response = await agent.SendMessageAsync("Get Jorge last name and with that get his inventory", true);
 Console.WriteLine(response);

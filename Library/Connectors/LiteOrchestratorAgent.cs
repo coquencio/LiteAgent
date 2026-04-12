@@ -4,7 +4,7 @@ using LiteAgent.Constants;
 namespace LiteAgent.Connectors;
 public class LiteOrchestratorAgent
 {
-    private readonly LiteActions _orchestrator;
+    private readonly LiteActions _liteActions;
     private readonly ILiteClient _aiClient;
     private readonly IServiceProvider _serviceProvider;
     private readonly List<LiteMessage> _history = new();
@@ -12,7 +12,7 @@ public class LiteOrchestratorAgent
 
     public LiteOrchestratorAgent(ILiteClient aiClient, IServiceProvider serviceProvider)
     {
-        _orchestrator = new LiteActions();
+        _liteActions = new LiteActions();
         _aiClient = aiClient;
         _serviceProvider = serviceProvider;
     }
@@ -55,7 +55,7 @@ public class LiteOrchestratorAgent
                     $"before registering it in the agent.");
             }
 
-            _orchestrator.RegisterKit(instance);
+            _liteActions.RegisterKit(instance);
         }
     }
 
@@ -68,7 +68,7 @@ public class LiteOrchestratorAgent
     {
         foreach (var instance in instances)
         {
-            _orchestrator.RegisterKit(instance);
+            _liteActions.RegisterKit(instance);
         }
     }
 
@@ -102,7 +102,7 @@ public class LiteOrchestratorAgent
         // 1. Initialize history with System Instructions if empty
         if (_history.Count == 0)
         {
-            _history.Add(new LiteMessage(Roles.System, _orchestrator.GetSystemInstructions()));
+            _history.Add(new LiteMessage(Roles.System, _liteActions.GetSystemInstructions()));
             
             if (!string.IsNullOrWhiteSpace(_customContext))
                 _history.Add(new LiteMessage(Roles.System, "Without ignoring the previous instructions, " + _customContext));
@@ -116,7 +116,7 @@ public class LiteOrchestratorAgent
             string rawResponse = await _aiClient.GetCompletionAsync(_history);
 
             // 3. Try to execute a TOON tool
-            string executionResult = await _orchestrator.ExecuteMatchAsync(rawResponse);
+            string executionResult = await _liteActions.ExecuteMatchAsync(rawResponse);
 
             // If the result is the same as rawResponse, it's just text for the user
             if (executionResult == rawResponse)

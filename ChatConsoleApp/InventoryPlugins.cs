@@ -3,9 +3,10 @@
 namespace ChatConsoleApp;
 public class InventoryPlugins
 {
-    [LitePlugin("Method to get inventory list, category is required")]
-    public List<string> GetInventory(string category)
+    [LitePlugin("Gets inventory from person's last name")]
+    public List<string> GetInventory(string lastName)
     {
+        Console.WriteLine(lastName);
         return new List<string>
         {
             "PC",
