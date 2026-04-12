@@ -58,7 +58,7 @@ public class LiteOrchestratorAgent
     {
         _customContext += context + "\n";
     }
-    public async Task<string> SendMessageAsync(string userMessage)
+    public async Task<string> SendMessageAsync(string userMessage, bool stateless = true)
     {
         // 1. Initialize history with System Instructions if empty
         if (_history.Count == 0)
@@ -83,6 +83,10 @@ public class LiteOrchestratorAgent
             if (executionResult == rawResponse)
             {
                 _history.Add(new LiteMessage(Roles.Assistant, rawResponse));
+                
+                if (stateless)
+                    _history.Clear();
+
                 return rawResponse;
             }
 
