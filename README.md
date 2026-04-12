@@ -31,7 +31,7 @@ Standard LLM tool calling relies on massive JSON schemas. **TOON** flattens thes
 
 ### 1\. Define your Tools
 
-Plugins are plain C\# classes. **The `LitePluginBase` class has been removed** to keep your code clean and decoupled. Simply decorate your methods with `[LitePlugin]` to make them discoverable.
+Plugins are plain C\# classes to keep your code clean and decoupled. Simply decorate your methods with `[LitePlugin]` to make them discoverable.
 
 ```csharp
 using LiteAgent.Tooling;
