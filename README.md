@@ -119,6 +119,7 @@ The agent manages a self-correcting cycle:
 - [ ] **Advanced History Management:** Max message window and summarization.
 - [ ] **Multi-Model Support:** Google Gemini, DeepSeek, and Anthropic connectors.
 - [ ] **Complex Orchestration:** Multi-step tool chaining in a single turn.
+- [ ] **Context injection:** Allow user to add custom context.
 - [ ] **Source Generators:** AOT-friendly execution for high-performance environments.
 
 ## License
