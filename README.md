@@ -1,4 +1,5 @@
 # LiteAgent (Preview)
+[![NuGet version](https://img.shields.io/nuget/v/LiteAgent.svg?style=flat-square)](https://www.nuget.org/packages/LiteAgent/)
 
 LiteAgent is a high-performance, token-efficient tool-calling library for .NET. It replaces verbose JSON payloads in LLM workflows with **TOON (Token-Oriented Object Notation)**, offering a lightweight agentic runtime that saves up to **80%** in input/output tokens.
 
