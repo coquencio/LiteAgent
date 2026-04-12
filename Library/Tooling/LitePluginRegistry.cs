@@ -7,10 +7,11 @@ internal class LitePluginRegistry
 
     public void RegisterPlugins(params LitePluginBase[] instances)
     {
-        var methods = typeof(LitePluginBase).GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                               .Where(m => m.GetCustomAttribute<LitePlugin>() != null);
         foreach (var instance in instances)
         {
+            var methods = instance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(m => m.GetCustomAttribute<LitePlugin>() != null);
+
             foreach (var method in methods)
             {
                 var attr = method.GetCustomAttribute<LitePlugin>();
