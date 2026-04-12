@@ -58,6 +58,12 @@ public class LiteOrchestratorAgent
     {
         _customContext += context + "\n";
     }
+    /// <summary>
+    /// Sends a message to the agent and returns the response. Optionally controls whether the agent maintains conversation history.
+    /// </summary>
+    /// <param name="userMessage">The message from the user to send to the agent.</param>
+    /// <param name="stateless">If true, the agent will not remember previous messages after responding; if false, conversation history is preserved for future interactions.</param>
+    /// <returns>The agent's response as a string.</returns>
     public async Task<string> SendMessageAsync(string userMessage, bool stateless = true)
     {
         // 1. Initialize history with System Instructions if empty
