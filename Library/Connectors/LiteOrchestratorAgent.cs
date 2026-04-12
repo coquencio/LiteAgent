@@ -1,22 +1,23 @@
 ﻿using LiteAgent.Actions;
 using LiteAgent.Constants;
-using LiteAgent.Tooling;
 
 namespace LiteAgent.Connectors;
 public class LiteOrchestratorAgent
 {
     private readonly LiteActions _orchestrator;
     private readonly ILiteClient _aiClient;
+    private readonly IServiceProvider _serviceProvider;
     private readonly List<LiteMessage> _history = new();
     private string _customContext = string.Empty;
 
-    public LiteOrchestratorAgent(ILiteClient aiClient)
+    public LiteOrchestratorAgent(ILiteClient aiClient, IServiceProvider serviceProvider)
     {
         _orchestrator = new LiteActions();
         _aiClient = aiClient;
+        _serviceProvider = serviceProvider;
     }
 
-    internal LiteOrchestratorAgent WithConfiguration(int? maxTokens = default, float? temperature = default, params LitePluginBase[] instances)
+    internal LiteOrchestratorAgent WithConfiguration(int? maxTokens = default, float? temperature = default, params Type[] pluginTypes)
     {
         if (maxTokens != null)
             _aiClient.SetMaxTokens(maxTokens.Value);
@@ -24,8 +25,8 @@ public class LiteOrchestratorAgent
         if (temperature != null)
             _aiClient.SetTemperature(temperature.Value);
         
-        if (instances != null && instances.Length > 0)
-            RegisterTools(instances);
+        if (pluginTypes != null && pluginTypes.Length > 0)
+            RegisterTools(pluginTypes);
         
         return this;
     }
@@ -35,9 +36,41 @@ public class LiteOrchestratorAgent
     /// Registers one or more LitePluginBase tool instances with the orchestrator.
     /// </summary>
     /// <param name="instances">The plugin/tool instances to register.</param>
-    public void RegisterTools(params LitePluginBase[] instances) =>
-        _orchestrator.RegisterKit(instances);
+    /// <summary>
+    /// Registers one or more LitePluginBase tool types by resolving them from the Service Collection.
+    /// </summary>
+    /// <param name="pluginTypes">The types of the plugins to register.</param>
+    internal void RegisterTools(params Type[] pluginTypes)
+    {
+        foreach (var type in pluginTypes)
+        {
+            // Resolvemos la instancia desde el contenedor
+            var instance = _serviceProvider.GetService(type);
 
+            if (instance == null)
+            {
+                throw new InvalidOperationException(
+                    $"The tool '{type.Name}' could not be resolved from the Service Collection. " +
+                    $"Make sure to register '{type.Name}' in your DI container (e.g., services.AddSingleton<{type.Name}>()) " +
+                    $"before registering it in the agent.");
+            }
+
+            _orchestrator.RegisterKit(instance);
+        }
+    }
+
+    /// <summary>
+    /// Registers one or more LitePluginBase tool instances directly. Use this method when the tool instances
+    /// are not managed by the service provider (DI container) but are created manually or elsewhere.
+    /// </summary>
+    /// <param name="instances">The plugin/tool instances to register.</param>
+    public void RegisterToolInstances(params object[] instances)
+    {
+        foreach (var instance in instances)
+        {
+            _orchestrator.RegisterKit(instance);
+        }
+    }
 
     /// <summary>
     /// Configures the AI client with the specified temperature and maximum token count.

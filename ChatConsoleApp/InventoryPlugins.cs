@@ -1,7 +1,7 @@
 ﻿using LiteAgent.Tooling;
 
 namespace ChatConsoleApp;
-public class InventoryPlugins : LitePluginBase
+public class InventoryPlugins
 {
     [LitePlugin("Method to get inventory list, category is required")]
     public List<string> GetInventory(string category)

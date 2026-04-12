@@ -1,149 +1,75 @@
 ﻿using LiteAgent.Connectors;
-using LiteAgent.Tooling;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LiteAgent.Extensions;
+
+/// <summary>
+/// Extension methods for setting up LiteAgent services in an <see cref="IServiceCollection"/>.
+/// </summary>
 public static class LiteAgentExtensions
 {
     /// <summary>
-    /// Registers a LiteOrchestratorAgent with default configuration in the service collection.
+    /// Registers a LiteOrchestratorAgent and allows adding plugins via a generic fluent configuration.
     /// </summary>
-    /// <param name="services">The service collection to add the agent to.</param>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">The configuration delegate.</param>
     /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddLiteAgent(this IServiceCollection services)
+    public static IServiceCollection AddLiteAgent(this IServiceCollection services, Action<LiteAgentConfigurationBuilder>? configure = null)
     {
+        var builder = new LiteAgentConfigurationBuilder();
+        configure?.Invoke(builder);
+
         return services.AddTransient(sp =>
         {
             var client = sp.GetRequiredService<ILiteClient>();
-            return new LiteOrchestratorAgent(client);
+            var agent = new LiteOrchestratorAgent(client, sp);
+
+            return agent.WithConfiguration(
+                builder.MaxTokens,
+                builder.Temperature,
+                builder.PluginTypes.ToArray()
+            );
         });
     }
 
     /// <summary>
-    /// Registers a LiteOrchestratorAgent with a specified temperature in the service collection.
+    /// Helper class to provide a clean, generic-based configuration syntax.
     /// </summary>
-    /// <param name="services">The service collection to add the agent to.</param>
-    /// <param name="temp">The temperature value for the agent configuration.</param>
-    /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddLiteAgent(this IServiceCollection services, float temp)
+    public class LiteAgentConfigurationBuilder
     {
-        return services.AddTransient(sp =>
+        public List<Type> PluginTypes { get; } = new();
+        public int MaxTokens { get; private set; } = 1000;
+        public float Temperature { get; private set; } = 0.7f;
+
+        /// <summary>
+        /// Adds a plugin type to the agent using generic syntax.
+        /// </summary>
+        /// <typeparam name="T">The plugin class inheriting from LitePluginBase.</typeparam>
+        public LiteAgentConfigurationBuilder AddPlugin<T>() where T : class
         {
-            var client = sp.GetRequiredService<ILiteClient>();
-            return new LiteOrchestratorAgent(client).WithConfiguration(temperature: temp, instances: []);
-        });
+            PluginTypes.Add(typeof(T));
+            return this;
+        }
+
+        public LiteAgentConfigurationBuilder SetMaxTokens(int tokens)
+        {
+            MaxTokens = tokens;
+            return this;
+        }
+
+        public LiteAgentConfigurationBuilder SetTemperature(float temp)
+        {
+            Temperature = temp;
+            return this;
+        }
     }
 
     /// <summary>
-    /// Registers a LiteOrchestratorAgent with a specified maximum token count in the service collection.
+    /// Registers a LiteAzureOpenAIClient as a singleton ILiteClient.
     /// </summary>
-    /// <param name="services">The service collection to add the agent to.</param>
-    /// <param name="maxTokens">The maximum number of tokens for the agent configuration.</param>
-    /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddLiteAgent(this IServiceCollection services, int maxTokens)
-    {
-        return services.AddTransient(sp =>
-        {
-            var client = sp.GetRequiredService<ILiteClient>();
-            return new LiteOrchestratorAgent(client).WithConfiguration(maxTokens, instances: []);
-        });
-    }
-    /// <summary>
-    /// Registers a LiteOrchestratorAgent with specified temperature and maximum token count in the service collection.
-    /// </summary>
-    /// <param name="services">The service collection to add the agent to.</param>
-    /// <param name="temp">The temperature value for the agent configuration.</param>
-    /// <param name="maxTokens">The maximum number of tokens for the agent configuration.</param>
-    /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddLiteAgent(this IServiceCollection services, float temp, int maxTokens)
-    {
-        return services.AddTransient(sp =>
-        {
-            var client = sp.GetRequiredService<ILiteClient>();
-            return new LiteOrchestratorAgent(client).WithConfiguration(maxTokens, temp, []);
-        });
-    }
-    /// <summary>
-    /// Registers a LiteOrchestratorAgent with specified temperature, maximum token count, and plugin instances in the service collection.
-    /// </summary>
-    /// <param name="services">The service collection to add the agent to.</param>
-    /// <param name="temp">The temperature value for the agent configuration.</param>
-    /// <param name="maxTokens">The maximum number of tokens for the agent configuration.</param>
-    /// <param name="pluginInstances">The plugin instances to use with the agent.</param>
-    /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddLiteAgent(this IServiceCollection services, float temp, int maxTokens, params LitePluginBase[] pluginInstances)
-    {
-        return services.AddTransient(sp =>
-        {
-            var client = sp.GetRequiredService<ILiteClient>();
-            return new LiteOrchestratorAgent(client).WithConfiguration(maxTokens, temp, pluginInstances);
-        });
-    }
-
-    /// <summary>
-    /// Registers a LiteOrchestratorAgent with specified plugin instances in the service collection.
-    /// </summary>
-    /// <param name="services">The service collection to add the agent to.</param>
-    /// <param name="pluginInstances">The plugin instances to use with the agent.</param>
-    /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddLiteAgent(this IServiceCollection services, params LitePluginBase[] pluginInstances)
-    {
-        return services.AddTransient(sp =>
-        {
-            var client = sp.GetRequiredService<ILiteClient>();
-            return new LiteOrchestratorAgent(client).WithConfiguration(instances: pluginInstances);
-        });
-    }
-
-    /// <summary>
-    /// Registers a LiteOrchestratorAgent with specified maximum token count and plugin instances in the service collection.
-    /// </summary>
-    /// <param name="services">The service collection to add the agent to.</param>
-    /// <param name="maxTokens">The maximum number of tokens for the agent configuration.</param>
-    /// <param name="pluginInstances">The plugin instances to use with the agent.</param>
-    /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddLiteAgent(this IServiceCollection services, int maxTokens, params LitePluginBase[] pluginInstances)
-    {
-        return services.AddTransient(sp =>
-        {
-            var client = sp.GetRequiredService<ILiteClient>();
-            return new LiteOrchestratorAgent(client).WithConfiguration(maxTokens, instances: pluginInstances);
-        });
-    }
-    /// <summary>
-    /// Registers a LiteOrchestratorAgent with specified temperature and plugin instances in the service collection.
-    /// </summary>
-    /// <param name="services">The service collection to add the agent to.</param>
-    /// <param name="temp">The temperature value for the agent configuration.</param>
-    /// <param name="pluginInstances">The plugin instances to use with the agent.</param>
-    /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddLiteAgent(this IServiceCollection services, float temp, params LitePluginBase[] pluginInstances)
-    {
-        return services.AddTransient(sp =>
-        {
-            var client = sp.GetRequiredService<ILiteClient>();
-            return new LiteOrchestratorAgent(client).WithConfiguration(temperature: temp, instances: pluginInstances);
-        });
-    }
-
-    /// <summary>
-    /// Registers a LiteAzureOpenAIClient as a singleton ILiteClient in the service collection.
-    /// </summary>
-    /// <param name="services">The service collection to add the client to.</param>
-    /// <param name="apiKey">The API key for Azure OpenAI.</param>
-    /// <param name="deploymentName">The deployment name for Azure OpenAI.</param>
-    /// <param name="endpoint">The endpoint URL for Azure OpenAI.</param>
-    /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddAzureOpenAILiteClient(this IServiceCollection services, string apiKey, string deploymentName, string endpoint)
     {
         return services.AddSingleton<ILiteClient>(sp =>
-        new LiteAzureOpenAIClient(
-            apiKey: apiKey,
-            deployment: deploymentName,
-            endpoint: endpoint
-        ));
+            new LiteAzureOpenAIClient(apiKey, deploymentName, endpoint));
     }
-
-
 }
-
