@@ -156,6 +156,10 @@ LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips betw
   - [X] **Complex Orchestration:** Multi-step tool chaining in a single turn.
   - [ ] **Source Generators:** AOT-friendly execution for high-performance environments.
 
+## Keywords
+
+LLM, OpenAI, Azure OpenAI, token optimization, reduce tokens, function calling, tool calling, .NET AI, AI agents, Semantic Kernel alternative, prompt optimization, cost reduction, TOON format
+
 ## License
 
 MIT
