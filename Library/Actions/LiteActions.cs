@@ -33,7 +33,7 @@ public class LiteActions
         }
 
         // --- SPECIAL HANDLING FOR ORCHESTRATION ---
-        if (call.FunctionName.Equals("executesequence", StringComparison.OrdinalIgnoreCase))
+        if (call.FunctionName.Equals("execute_sequence", StringComparison.OrdinalIgnoreCase))
         {
             try
             {

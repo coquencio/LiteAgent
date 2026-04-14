@@ -14,6 +14,7 @@ Standard LLM tool calling relies on massive JSON schemas. **TOON** flattens thes
 
   - **Standard JSON:** `{"tool_calls":[{"id":"1","function":{"name":"greet","arguments":"{\"name\":\"Jorge\"}"}}]}` (\~60 tokens)
   - **TOON (LiteAgent):** `greet{Jorge}` (\~6 tokens)
+  - **TOON Multi-Arg:** `log{System|Error\\|Critical}` (Uses `|` as separator and `\\|` for escaping)
 
 -----
 
@@ -78,6 +79,8 @@ builder.Services.AddLiteAgent(config =>
     config.AddPlugin<InventoryPlugins>();
     config.SetTemperature(0.7f);
     config.SetMaxTokens(1000);
+    // Sets the limit for the history pruning (Default: 128,000)
+    config.SetMaxContextTokens(128000);
 });
 
 using IHost host = builder.Build();
@@ -97,6 +100,9 @@ agent.RegisterToolInstances(manualTool);
 ### 3\. Run the Agent
 
 The `LiteOrchestratorAgent` manages the autonomous **Think-Act-Observe** cycle. You can provide specific context or instructions right before sending a message.
+#### Option A: Managed History (Internal)
+
+The agent maintains an internal `_history` list. You can choose to clear it after each call or keep it for multi-turn conversations.
 
 ```csharp
 var agent = host.Services.GetRequiredService<LiteOrchestratorAgent>();
@@ -108,10 +114,19 @@ agent.AddContext("You love to crack some silly jokes when returning final answer
 agent.Configure(temperature: 0.7f, maxTokens: 1000);
 
 
-// Start the conversation (stateless: true clears history after the response)
+// Start the conversation (stateless: true clears history after the response, false preserves agent instance's history)
 string response = await agent.SendMessageAsync("Greet Jorge and check the office inventory", stateless: true);
 
 Console.WriteLine($"Agent: {response}");
+```
+
+#### Option B: External History (Full Control)
+
+Pass your own `List<LiteMessage>`. The agent will automatically inject system instructions and custom context if they are missing, and apply pruning rules.
+
+```csharp
+var myHistory = new List<LiteMessage>(); // Could be loaded from a Database
+string response = await agent.SendMessageAsync("Check inventory", myHistory);
 ```
 
 -----
@@ -124,34 +139,44 @@ The agent manages a self-correcting cycle:
 
 1.  **System Prompt:** Injects dynamic TOON instructions and any `AddContext` data.
 2.  **Execute:** If the LLM generates a TOON string (e.g., `greet{Jorge}`), the agent executes the C\# method.
-3.  **Observe:** Results are fed back to the model as a `TOOL_RESULT`.
+3.  **Observe:** Results (including execution traces) are fed back to the model.
 4.  **Finalize:** The cycle repeats until the LLM provides a final natural language response.
 
 ### Smart Dependency Resolution
 
 When using `AddPlugin<T>()`, the agent resolves the instance directly from your `IServiceProvider`. This allows your plugins to use their own injected dependencies (like DB Contexts or specialized services) via standard constructor injection.
 
------
 
-## **Sequence Orchestrator (Pipelines)**
+### **Sequence Orchestrator (Pipelines)**
 
 LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips between the LLM and your server, the agent can plan and execute a complex sequence of plugins in a single turn using `executesequence`.
 
-### Features:
+#### Features:
 
   * **Zero-Latency Chaining:** Execute `Plugin A | Plugin B | Plugin C` entirely in C\#.
   * **Indexed References:** Use `$1`, `$2`, etc., to pass results from previous steps to the next one.
   * **Dot Notation Access:** Access specific properties of complex objects (e.g., `$1.id` or `$1.email`).
   * **Type Discovery:** The system automatically exposes return types (like `(id:int,name:string)`) so the LLM knows exactly which properties are available for chaining.
+  * **Execution Trace:** Returns a summarized trace of each step: `[#1: get_user -> success] [#2: get_balance -> 500]`.
 
 **Example:**
-`executesequence{get_user{Jorge}|get_balance{$1.id}|send_email{$1.email,$2}}`
+`executesequence{get_user{Jorge}|get_balance{$1.id}|send_email{$1.email|$2}}`
+
+### Smart Context Pruning
+
+To avoid "Context Window Exceeded" errors, LiteAgent includes a Pruning Mechanism:
+
+1. System Preservation: System instructions and custom context are always kept at the top of the stack.
+
+2. Sliding Window: When EstimateTokens exceeds MaxContextTokens, the oldest conversational messages are removed first.
+
+3. Automatic Injection: When using external history, EnsureSystemContext verifies that the agent's core instructions are present before processing.
 
 -----
 
 ## Roadmap
 
-  - [ ] **Advanced History Management:** Max message window and summarization.
+  - [X] **Advanced History Management:** Max message window and summarization.
   - [ ] **Multi-Model Support:** Google Gemini, DeepSeek, and Anthropic connectors.
   - [X] **Complex Orchestration:** Multi-step tool chaining in a single turn.
   - [ ] **Source Generators:** AOT-friendly execution for high-performance environments.
@@ -161,5 +186,4 @@ LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips betw
 LLM, OpenAI, Azure OpenAI, token optimization, reduce tokens, function calling, tool calling, .NET AI, AI agents, Semantic Kernel alternative, prompt optimization, cost reduction, TOON format
 
 ## License
-
 MIT

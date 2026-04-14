@@ -27,6 +27,7 @@ public static class LiteAgentExtensions
             return agent.WithConfiguration(
                 builder.MaxTokens,
                 builder.Temperature,
+                builder.MaxContextTokens,
                 builder.PluginTypes.ToArray()
             );
         });
@@ -39,6 +40,7 @@ public static class LiteAgentExtensions
     {
         public List<Type> PluginTypes { get; } = new();
         public int MaxTokens { get; private set; } = 1000;
+        public int MaxContextTokens { get; private set; } = 128000;
         public float Temperature { get; private set; } = 0.7f;
 
         /// <summary>
@@ -60,6 +62,11 @@ public static class LiteAgentExtensions
         public LiteAgentConfigurationBuilder SetTemperature(float temp)
         {
             Temperature = temp;
+            return this;
+        }
+        public LiteAgentConfigurationBuilder SetMaxContextTokens(int tokens)
+        {
+            MaxContextTokens = tokens;
             return this;
         }
     }
