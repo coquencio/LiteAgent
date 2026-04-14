@@ -166,11 +166,11 @@ LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips betw
 
 To avoid "Context Window Exceeded" errors, LiteAgent includes a Pruning Mechanism:
 
-1. System Preservation: System instructions and custom context are always kept at the top of the stack.
+1. **System Preservation:** System instructions and custom context are always kept at the top of the stack.
 
-2. Sliding Window: When EstimateTokens exceeds MaxContextTokens, the oldest conversational messages are removed first.
+2. **Sliding Window:** When EstimateTokens exceeds MaxContextTokens, the oldest conversational messages are removed first.
 
-3. Automatic Injection: When using external history, EnsureSystemContext verifies that the agent's core instructions are present before processing.
+3. **Automatic Injection:** When using external history, EnsureSystemContext verifies that the agent's core instructions are present before processing.
 
 -----
 
@@ -179,7 +179,6 @@ To avoid "Context Window Exceeded" errors, LiteAgent includes a Pruning Mechanis
   - [X] **Advanced History Management:** Max message window and summarization.
   - [ ] **Multi-Model Support:** Google Gemini, DeepSeek, and Anthropic connectors.
   - [X] **Complex Orchestration:** Multi-step tool chaining in a single turn.
-  - [ ] **Source Generators:** AOT-friendly execution for high-performance environments.
 
 ## Keywords
 
