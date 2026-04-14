@@ -5,21 +5,22 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddSingleton<GreetPlugins>();
-builder.Services.AddSingleton<InventoryPlugins>();
+builder.Services.AddSingleton<UserPlugin>();
+builder.Services.AddSingleton<EmailPlugins>();
 
 builder.Services.AddAzureOpenAILiteClient(
-    "your api key",
+    "",
     "gpt-4o-mini",
     "https://resource.openai.azure.com/openai/v1/"
 );
 
 builder.Services.AddLiteAgent(config =>
 {
-    config.AddPlugin<GreetPlugins>();
-    config.AddPlugin<InventoryPlugins>();
+    config.AddPlugin<UserPlugin>();
+    config.AddPlugin<EmailPlugins>();
     config.SetTemperature(0.7f);
     config.SetMaxTokens(1000);
+    config.SetMaxContextTokens(128000);
 });
 
 var app = builder.Build();
@@ -27,5 +28,5 @@ var app = builder.Build();
 
 var agent = app.Services.GetRequiredService<LiteOrchestratorAgent>();
 agent.AddContext("You love to crack some silly jokes when returning final answers to the user");
-string response = await agent.SendMessageAsync("Get Jorge last name and with that get his inventory", true);
+string response = await agent.SendMessageAsync("Get me user details of user johnDoe", true);
 Console.WriteLine(response);

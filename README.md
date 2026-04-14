@@ -14,6 +14,7 @@ Standard LLM tool calling relies on massive JSON schemas. **TOON** flattens thes
 
   - **Standard JSON:** `{"tool_calls":[{"id":"1","function":{"name":"greet","arguments":"{\"name\":\"Jorge\"}"}}]}` (\~60 tokens)
   - **TOON (LiteAgent):** `greet{Jorge}` (\~6 tokens)
+  - **TOON Multi-Arg:** `log{System|Error\\|Critical}` (Uses `|` as separator and `\\|` for escaping)
 
 -----
 
@@ -124,7 +125,7 @@ The agent manages a self-correcting cycle:
 
 1.  **System Prompt:** Injects dynamic TOON instructions and any `AddContext` data.
 2.  **Execute:** If the LLM generates a TOON string (e.g., `greet{Jorge}`), the agent executes the C\# method.
-3.  **Observe:** Results are fed back to the model as a `TOOL_RESULT`.
+3.  **Observe:** Results (including execution traces) are fed back to the model.
 4.  **Finalize:** The cycle repeats until the LLM provides a final natural language response.
 
 ### Smart Dependency Resolution
@@ -143,9 +144,10 @@ LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips betw
   * **Indexed References:** Use `$1`, `$2`, etc., to pass results from previous steps to the next one.
   * **Dot Notation Access:** Access specific properties of complex objects (e.g., `$1.id` or `$1.email`).
   * **Type Discovery:** The system automatically exposes return types (like `(id:int,name:string)`) so the LLM knows exactly which properties are available for chaining.
+  * **Execution Trace:** Returns a summarized trace of each step: `[#1: get_user -> success] [#2: get_balance -> 500]`.
 
 **Example:**
-`executesequence{get_user{Jorge}|get_balance{$1.id}|send_email{$1.email,$2}}`
+`executesequence{get_user{Jorge}|get_balance{$1.id}|send_email{$1.email|$2}}`
 
 -----
 
@@ -157,5 +159,4 @@ LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips betw
   - [ ] **Source Generators:** AOT-friendly execution for high-performance environments.
 
 ## License
-
 MIT

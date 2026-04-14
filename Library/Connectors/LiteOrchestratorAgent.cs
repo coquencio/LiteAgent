@@ -9,6 +9,7 @@ public class LiteOrchestratorAgent
     private readonly IServiceProvider _serviceProvider;
     private readonly List<LiteMessage> _history = new();
     private string _customContext = string.Empty;
+    private int _maxContextTokens = 128000;
 
     public LiteOrchestratorAgent(ILiteClient aiClient, IServiceProvider serviceProvider)
     {
@@ -17,7 +18,7 @@ public class LiteOrchestratorAgent
         _serviceProvider = serviceProvider;
     }
 
-    internal LiteOrchestratorAgent WithConfiguration(int? maxTokens = default, float? temperature = default, params Type[] pluginTypes)
+    internal LiteOrchestratorAgent WithConfiguration(int? maxTokens = default, float? temperature = default, int? maxContextTokens = default, params Type[] pluginTypes)
     {
         if (maxTokens != null)
             _aiClient.SetMaxTokens(maxTokens.Value);
@@ -27,7 +28,10 @@ public class LiteOrchestratorAgent
         
         if (pluginTypes != null && pluginTypes.Length > 0)
             RegisterTools(pluginTypes);
-        
+
+        if (maxContextTokens.HasValue)
+            _maxContextTokens = maxContextTokens.Value;
+
         return this;
     }
 
@@ -95,25 +99,28 @@ public class LiteOrchestratorAgent
     /// Sends a message to the agent and returns the response. Optionally controls whether the agent maintains conversation history.
     /// </summary>
     /// <param name="userMessage">The message from the user to send to the agent.</param>
-    /// <param name="stateless">If true, the agent will not remember previous messages after responding; if false, conversation history is preserved for future interactions.</param>
+    /// <param name="stateless">If true, the agent will not remember previous messages after responding; if false, conversation history from current instance is preserved for future interactions.</param>
     /// <returns>The agent's response as a string.</returns>
     public async Task<string> SendMessageAsync(string userMessage, bool stateless = true)
     {
+        var history = stateless ? new List<LiteMessage>() : _history;
+
         // 1. Initialize history with System Instructions if empty
-        if (_history.Count == 0)
+        if (history.Count == 0)
         {
-            _history.Add(new LiteMessage(Roles.System, _liteActions.GetSystemInstructions()));
+            history.Add(new LiteMessage(Roles.System, _liteActions.GetSystemInstructions()));
             
             if (!string.IsNullOrWhiteSpace(_customContext))
-                _history.Add(new LiteMessage(Roles.System, "Without ignoring the previous instructions, " + _customContext));
+                history.Add(new LiteMessage(Roles.System, "Without ignoring the previous instructions, " + _customContext));
         }
 
-        _history.Add(new LiteMessage(Roles.User, userMessage));
+        history.Add(new LiteMessage(Roles.User, userMessage));
+        PruneHistory(history);
 
         // 2. Start the Agentic Loop
         while (true)
         {
-            string rawResponse = await _aiClient.GetCompletionAsync(_history);
+            string rawResponse = await _aiClient.GetCompletionAsync(history);
 
             // 3. Try to execute a TOON tool
             string executionResult = await _liteActions.ExecuteMatchAsync(rawResponse);
@@ -121,20 +128,101 @@ public class LiteOrchestratorAgent
             // If the result is the same as rawResponse, it's just text for the user
             if (executionResult == rawResponse)
             {
-                _history.Add(new LiteMessage(Roles.Assistant, rawResponse));
-                
-                if (stateless)
-                    _history.Clear();
+                history.Add(new LiteMessage(Roles.Assistant, rawResponse));
 
                 return rawResponse;
             }
 
             // If it's different, a tool was executed. Feed the result back to the LLM.
-            _history.Add(new LiteMessage(Roles.Assistant, rawResponse));
-            _history.Add(new LiteMessage(Roles.User, $"TOOL_RESULT: {executionResult}"));
+            history.Add(new LiteMessage(Roles.Assistant, rawResponse));
+            history.Add(new LiteMessage(Roles.User, $"TOOL_RESULT: {executionResult}"));
 
             // Loop again so the LLM can process the tool result
         }
+    }
+    /// <summary>
+    /// Sends a message using an external history. The agent will inject system instructions 
+    /// and custom context into this history before processing.
+    /// </summary>
+    /// <param name="userMessage">The message from the user.</param>
+    /// <param name="externalHistory">A list of messages representing the conversation state.</param>
+    /// <returns>The agent's response.</returns>
+    public async Task<string> SendMessageAsync(string userMessage, List<LiteMessage> externalHistory)
+    {
+        // 1. Ensure system instructions and custom context are present in the provided history
+        EnsureSystemContext(externalHistory);
+
+        // 2. Add the new user message
+        externalHistory.Add(new LiteMessage(Roles.User, userMessage));
+
+        // 3. Prune history based on max context window
+        PruneHistory(externalHistory);
+
+        // 4. Start the Agentic Loop
+        while (true)
+        {
+            string rawResponse = await _aiClient.GetCompletionAsync(externalHistory);
+
+            // 5. Try to execute a match
+            string executionResult = await _liteActions.ExecuteMatchAsync(rawResponse);
+
+            // If it's pure text, append to history and return
+            if (executionResult == rawResponse)
+            {
+                externalHistory.Add(new LiteMessage(Roles.Assistant, rawResponse));
+                return rawResponse;
+            }
+
+            // If a tool was triggered, record the tool call and the result
+            externalHistory.Add(new LiteMessage(Roles.Assistant, rawResponse));
+            externalHistory.Add(new LiteMessage(Roles.User, $"TOOL_RESULT: {executionResult}"));
+
+            // Prune again if the tool result was too large
+            PruneHistory(externalHistory);
+        }
+    }
+
+    /// <summary>
+    /// Helper to inject system instructions and custom context if they are missing.
+    /// </summary>
+    private void EnsureSystemContext(List<LiteMessage> history)
+    {
+        // Get base instructions from the registered tools
+        string systemInstructions = _liteActions.GetSystemInstructions();
+
+        // Check if instructions are already present to avoid duplicates
+        if (!history.Any(m => m.Role == Roles.System && m.Content.Contains(systemInstructions)))
+        {
+            history.Insert(0, new LiteMessage(Roles.System, systemInstructions));
+        }
+
+        // Inject custom context if provided and not already in history
+        if (!string.IsNullOrWhiteSpace(_customContext) &&
+            !history.Any(m => m.Role == Roles.System && m.Content.Contains(_customContext)))
+        {
+            history.Add(new LiteMessage(Roles.System, "Without ignoring the previous instructions, " + _customContext));
+        }
+    }
+
+    // Update PruneHistory to accept a specific list
+    private void PruneHistory(List<LiteMessage> history)
+    {
+        var systemMessages = history.Where(m => m.Role == Roles.System).ToList();
+        var conversationalMessages = history.Where(m => m.Role != Roles.System).ToList();
+
+        while (EstimateTokens(history) > _maxContextTokens && conversationalMessages.Count > 1)
+        {
+            conversationalMessages.RemoveAt(0);
+
+            history.Clear();
+            history.AddRange(systemMessages);
+            history.AddRange(conversationalMessages);
+        }
+    }
+
+    private int EstimateTokens(List<LiteMessage> messages)
+    {
+        return messages.Sum(m => m.Content.Length / 4);
     }
 }
 

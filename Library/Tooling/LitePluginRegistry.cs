@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace LiteAgent.Tooling;
 internal class LitePluginRegistry
@@ -15,7 +16,7 @@ internal class LitePluginRegistry
             var attr = method.GetCustomAttribute<LitePlugin>();
             var definition = new LitePluginDefinition
             {
-                Name = method.Name.ToLower(),
+                Name = Regex.Replace(method.Name, @"(?<!^)([A-Z])", "_$1").ToLower(),
                 Description = attr?.Description,
                 Method = method,
                 TargetInstance = instance,
@@ -24,7 +25,7 @@ internal class LitePluginRegistry
             if (_plugins.ContainsKey(definition.Name))
                 throw new InvalidOperationException($"A plugin with the name '{definition.Name}' is already registered.");
             
-            if (_plugins.ContainsKey("executesequence"))
+            if (_plugins.ContainsKey("execute_sequence"))
                 throw new InvalidOperationException("Conflict detected: The plugin name 'ExecuteSequence' is reserved for the LiteAgent internal orchestration engine. Please use a different name for your custom plugin to avoid conflicts with the agentic chaining system.");
 
             _plugins[definition.Name] = definition;

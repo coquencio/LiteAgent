@@ -23,9 +23,11 @@ internal class LitePluginDefinition
         // Getting the robust type representation
         var returnTypeDescriptor = GetTypeDescriptor(returnType);
 
-        var paramsStr = string.Join(",", Parameters.Select(p => $"<{p.Name}>"));
+        // Changed comma to pipe to match the new TOON argument delimiter
+        var paramsStr = string.Join("|", Parameters.Select(p => $"<{p.Name}>"));
         var desc = string.IsNullOrEmpty(Description) ? "" : $" - {Description}";
 
+        // We use Name as is (usually the Method name) to avoid injecting underscores
         return $"{returnTypeDescriptor}:{Name}{{{paramsStr}}}{desc}";
     }
 
