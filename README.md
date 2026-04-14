@@ -15,12 +15,20 @@ Standard LLM tool calling relies on massive JSON schemas. **TOON** flattens thes
   - **Standard JSON:** `{"tool_calls":[{"id":"1","function":{"name":"greet","arguments":"{\"name\":\"Jorge\"}"}}]}` (\~60 tokens)
   - **TOON (LiteAgent):** `greet{Jorge}` (\~6 tokens)
   - **TOON Multi-Arg:** `log{System|Error\\|Critical}` (Uses `|` as separator and `\\|` for escaping)
+-----
 
+## Multi-Model Support
+LiteAgent supports the most capable models in the industry through official and high-performance SDKs:
+
+* **Azure OpenAI:** Enterprise-grade integration.
+* **Google Gemini:** Official `Google.GenAI` support (Flash & Pro).
+* **Anthropic Claude:** High-reasoning agentic workflows via `Anthropic.SDK`.
+* **Generic OpenAI:** Support for **Ollama**, **Groq**, **DeepSeek**.
 -----
 
 ## Project Structure
 
-  - **Connectors:** Clients for Azure OpenAI using the official SDK (`ILiteClient`).
+  - **Connectors:** Pluggable AI clients (ILiteClient) for Azure, Gemini, Claude, and local models.
   - **Actions:** The core engine that parses TOON and executes methods via reflection (`LiteActions`).
   - **Tooling:** Plugin system and attributes (`[LitePlugin]`) to expose code efficiently.
   - **Extensions:** Fluent API for seamless .NET Dependency Injection.
@@ -66,10 +74,30 @@ builder.Services.AddSingleton<BusinessTools>();
 builder.Services.AddSingleton<InventoryPlugins>();
 
 // 2. Register the AI Connector
+// --- Option A: Azure OpenAI (Official) ---
 builder.Services.AddAzureOpenAILiteClient(
     apiKey: "your-api-key",
     deploymentName: "gpt-4o-mini",
     endpoint: "https://your-resource.openai.azure.com"
+);
+
+// --- Option B: Google Gemini (Official) ---
+builder.Services.AddGeminiLiteClient(
+    apiKey: "your-google-api-key",
+    modelName: "gemini-1.5-flash"
+);
+
+// --- Option C: Anthropic Claude ---
+builder.Services.AddClaudeLiteClient(
+    apiKey: "your-anthropic-key",
+    modelName: "claude-3-5-sonnet-latest"
+);
+
+// --- Option D: Local Models (Ollama) ---
+builder.Services.AddGenericOpenAILiteClient(
+    apiKey: "ollama",
+    modelId: "llama3",
+    endpoint: "http://localhost:11434/v1"
 );
 
 // 3. Configure the Agent with the registered plugins
@@ -177,7 +205,7 @@ To avoid "Context Window Exceeded" errors, LiteAgent includes a Pruning Mechanis
 ## Roadmap
 
   - [X] **Advanced History Management:** Max message window and summarization.
-  - [ ] **Multi-Model Support:** Google Gemini, DeepSeek, and Anthropic connectors.
+  - [X] **Multi-Model Support:** Google Gemini, DeepSeek, and Anthropic connectors.
   - [X] **Complex Orchestration:** Multi-step tool chaining in a single turn.
 
 ## Keywords
