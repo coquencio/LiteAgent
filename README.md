@@ -73,32 +73,13 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddSingleton<BusinessTools>();
 builder.Services.AddSingleton<InventoryPlugins>();
 
-// 2. Register the AI Connector
-// --- Option A: Azure OpenAI (Official) ---
+// 2. Register the AI Connector (can pick also from "AddGeminiLiteClient", "AddClaudeLiteClient" or "AddGenericOpenAILiteClient")
 builder.Services.AddAzureOpenAILiteClient(
     apiKey: "your-api-key",
     deploymentName: "gpt-4o-mini",
     endpoint: "https://your-resource.openai.azure.com"
 );
 
-// --- Option B: Google Gemini (Official) ---
-builder.Services.AddGeminiLiteClient(
-    apiKey: "your-google-api-key",
-    modelName: "gemini-1.5-flash"
-);
-
-// --- Option C: Anthropic Claude ---
-builder.Services.AddClaudeLiteClient(
-    apiKey: "your-anthropic-key",
-    modelName: "claude-3-5-sonnet-latest"
-);
-
-// --- Option D: Local Models (Ollama) ---
-builder.Services.AddGenericOpenAILiteClient(
-    apiKey: "ollama",
-    modelId: "llama3",
-    endpoint: "http://localhost:11434/v1"
-);
 
 // 3. Configure the Agent with the registered plugins
 builder.Services.AddLiteAgent(config => 
@@ -130,7 +111,7 @@ agent.RegisterToolInstances(manualTool);
 The `LiteOrchestratorAgent` manages the autonomous **Think-Act-Observe** cycle. You can provide specific context or instructions right before sending a message.
 #### Option A: Managed History (Internal)
 
-The agent maintains an internal `_history` list. You can choose to clear it after each call or keep it for multi-turn conversations.
+The agent's instance maintains an internal `_history` list. You can choose to do stateless calls so no memory is stored or keep it for multi-turn conversations.
 
 ```csharp
 var agent = host.Services.GetRequiredService<LiteOrchestratorAgent>();
@@ -142,7 +123,7 @@ agent.AddContext("You love to crack some silly jokes when returning final answer
 agent.Configure(temperature: 0.7f, maxTokens: 1000);
 
 
-// Start the conversation (stateless: true clears history after the response, false preserves agent instance's history)
+// Start the conversation (stateless: true no memory is preserved after the response, false preserves conversation history)
 string response = await agent.SendMessageAsync("Greet Jorge and check the office inventory", stateless: true);
 
 Console.WriteLine($"Agent: {response}");
