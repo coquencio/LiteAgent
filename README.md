@@ -15,12 +15,20 @@ Standard LLM tool calling relies on massive JSON schemas. **TOON** flattens thes
   - **Standard JSON:** `{"tool_calls":[{"id":"1","function":{"name":"greet","arguments":"{\"name\":\"Jorge\"}"}}]}` (\~60 tokens)
   - **TOON (LiteAgent):** `greet{Jorge}` (\~6 tokens)
   - **TOON Multi-Arg:** `log{System|Error\\|Critical}` (Uses `|` as separator and `\\|` for escaping)
+-----
 
+## Multi-Model Support
+LiteAgent supports the most capable models in the industry through official and high-performance SDKs:
+
+* **Azure OpenAI:** Enterprise-grade integration.
+* **Google Gemini:** Official `Google.GenAI` support (Flash & Pro).
+* **Anthropic Claude:** High-reasoning agentic workflows via `Anthropic.SDK`.
+* **Generic OpenAI:** Support for **Ollama**, **Groq**, **DeepSeek**.
 -----
 
 ## Project Structure
 
-  - **Connectors:** Clients for Azure OpenAI using the official SDK (`ILiteClient`).
+  - **Connectors:** Pluggable AI clients (ILiteClient) for Azure, Gemini, Claude, and local models.
   - **Actions:** The core engine that parses TOON and executes methods via reflection (`LiteActions`).
   - **Tooling:** Plugin system and attributes (`[LitePlugin]`) to expose code efficiently.
   - **Extensions:** Fluent API for seamless .NET Dependency Injection.
@@ -65,12 +73,13 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddSingleton<BusinessTools>();
 builder.Services.AddSingleton<InventoryPlugins>();
 
-// 2. Register the AI Connector
+// 2. Register the AI Connector (can pick also from "AddGeminiLiteClient", "AddClaudeLiteClient" or "AddGenericOpenAILiteClient")
 builder.Services.AddAzureOpenAILiteClient(
     apiKey: "your-api-key",
     deploymentName: "gpt-4o-mini",
     endpoint: "https://your-resource.openai.azure.com"
 );
+
 
 // 3. Configure the Agent with the registered plugins
 builder.Services.AddLiteAgent(config => 
@@ -102,7 +111,7 @@ agent.RegisterToolInstances(manualTool);
 The `LiteOrchestratorAgent` manages the autonomous **Think-Act-Observe** cycle. You can provide specific context or instructions right before sending a message.
 #### Option A: Managed History (Internal)
 
-The agent maintains an internal `_history` list. You can choose to clear it after each call or keep it for multi-turn conversations.
+The agent's instance maintains an internal `_history` list. You can choose to do stateless calls so no memory is stored or keep it for multi-turn conversations.
 
 ```csharp
 var agent = host.Services.GetRequiredService<LiteOrchestratorAgent>();
@@ -114,7 +123,7 @@ agent.AddContext("You love to crack some silly jokes when returning final answer
 agent.Configure(temperature: 0.7f, maxTokens: 1000);
 
 
-// Start the conversation (stateless: true clears history after the response, false preserves agent instance's history)
+// Start the conversation (stateless: true no memory is preserved after the response, false preserves conversation history)
 string response = await agent.SendMessageAsync("Greet Jorge and check the office inventory", stateless: true);
 
 Console.WriteLine($"Agent: {response}");
@@ -177,7 +186,7 @@ To avoid "Context Window Exceeded" errors, LiteAgent includes a Pruning Mechanis
 ## Roadmap
 
   - [X] **Advanced History Management:** Max message window and summarization.
-  - [ ] **Multi-Model Support:** Google Gemini, DeepSeek, and Anthropic connectors.
+  - [X] **Multi-Model Support:** Google Gemini, DeepSeek, and Anthropic connectors.
   - [X] **Complex Orchestration:** Multi-step tool chaining in a single turn.
 
 ## Keywords

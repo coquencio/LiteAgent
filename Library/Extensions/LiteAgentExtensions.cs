@@ -107,7 +107,7 @@ public static class LiteAgentExtensions
     }
 
     /// <summary>
-    /// Registers a LiteAzureOpenAIClient as a singleton ILiteClient.
+    /// Registers a LiteAzureOpenAIClient as a singleton ILiteClient use this for azure Open AI models.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="apiKey">The Azure OpenAI API Key.</param>
@@ -117,5 +117,32 @@ public static class LiteAgentExtensions
     {
         return services.AddSingleton<ILiteClient>(sp =>
             new LiteAzureOpenAIClient(apiKey, deploymentName, endpoint));
+    }
+    /// <summary>
+    /// Registers a LiteGeminiClient as a singleton ILiteClient using the official Google GenAI SDK.
+    /// </summary>
+    public static IServiceCollection AddGeminiLiteClient(this IServiceCollection services, string apiKey, string modelName = "gemini-1.5-flash")
+    {
+        return services.AddSingleton<ILiteClient>(sp =>
+            new LiteGeminiClient(apiKey, modelName));
+    }
+
+    /// <summary>
+    /// Registers a LiteClaudeClient as a singleton ILiteClient using the Anthropic SDK.
+    /// </summary>
+    public static IServiceCollection AddClaudeLiteClient(this IServiceCollection services, string apiKey, string modelName = "claude-3-5-sonnet-latest")
+    {
+        return services.AddSingleton<ILiteClient>(sp =>
+            new LiteClaudeClient(apiKey, modelName));
+    }
+
+    /// <summary>
+    /// Registers a LiteGenericOpenAIClient as a singleton ILiteClient. 
+    /// Use this for Ollama, Groq, DeepSeek, or any OpenAI-compatible provider.
+    /// </summary>
+    public static IServiceCollection AddGenericOpenAILiteClient(this IServiceCollection services, string apiKey, string modelId, string endpoint = "https://api.openai.com/v1")
+    {
+        return services.AddSingleton<ILiteClient>(sp =>
+            new LiteGenericOpenAIClient(apiKey, modelId, endpoint));
     }
 }
