@@ -149,7 +149,7 @@ When using `AddPlugin<T>()`, the agent resolves the instance directly from your 
 
 ### **Sequence Orchestrator (Pipelines)**
 
-LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips between the LLM and your server, the agent can plan and execute a complex sequence of plugins in a single turn using `executesequence`.
+LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips between the LLM and your server, the agent can plan and execute a complex sequence of plugins in a single turn using `execute_sequence`.
 
 #### Features:
 
@@ -160,7 +160,7 @@ LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips betw
   * **Execution Trace:** Returns a summarized trace of each step: `[#1: get_user -> success] [#2: get_balance -> 500]`.
 
 **Example:**
-`executesequence{get_user{Jorge}|get_balance{$1.id}|send_email{$1.email|$2}}`
+`execute_sequence{get_user{Jorge}|get_balance{$1.id}|send_email{$1.email|$2}}`
 
 ### Smart Context Pruning
 

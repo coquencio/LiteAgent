@@ -1,7 +1,9 @@
 ﻿using LiteAgent.Actions;
 using LiteAgent.Constants;
+using Microsoft.Extensions.Logging;
 
 namespace LiteAgent.Connectors;
+
 public class LiteOrchestratorAgent
 {
     private readonly LiteActions _liteActions;
@@ -10,49 +12,64 @@ public class LiteOrchestratorAgent
     private readonly List<LiteMessage> _history = new();
     private string _customContext = string.Empty;
     private int _maxContextTokens = 128000;
+    private int _maxTurns = 10; // Default fallback
+    private readonly ILogger<LiteOrchestratorAgent>? _logger;
 
-    public LiteOrchestratorAgent(ILiteClient aiClient, IServiceProvider serviceProvider)
+    public LiteOrchestratorAgent(ILiteClient aiClient, IServiceProvider serviceProvider, ILoggerFactory? loggerFactory)
     {
-        _liteActions = new LiteActions();
         _aiClient = aiClient;
         _serviceProvider = serviceProvider;
+        _logger = loggerFactory?.CreateLogger<LiteOrchestratorAgent>();
+        _liteActions = new LiteActions(loggerFactory);
+
+        _logger?.LogInformation("LiteOrchestratorAgent initialized.");
     }
 
-    internal LiteOrchestratorAgent WithConfiguration(int? maxTokens = default, float? temperature = default, int? maxContextTokens = default, params Type[] pluginTypes)
+    internal LiteOrchestratorAgent WithConfiguration(int? maxTokens = default, float? temperature = default, int? maxContextTokens = default, int? maxTurns = default, params Type[] pluginTypes)
     {
-        if (maxTokens != null)
-            _aiClient.SetMaxTokens(maxTokens.Value);
+        _logger?.LogDebug("Applying agent configuration...");
+        try
+        {
+            if (maxTokens != null)
+                _aiClient.SetMaxTokens(maxTokens.Value);
 
-        if (temperature != null)
-            _aiClient.SetTemperature(temperature.Value);
-        
-        if (pluginTypes != null && pluginTypes.Length > 0)
-            RegisterTools(pluginTypes);
+            if (temperature != null)
+                _aiClient.SetTemperature(temperature.Value);
 
-        if (maxContextTokens.HasValue)
-            _maxContextTokens = maxContextTokens.Value;
+            if (pluginTypes != null && pluginTypes.Length > 0)
+                RegisterTools(pluginTypes);
+
+            if (maxContextTokens.HasValue)
+            {
+                _maxContextTokens = maxContextTokens.Value;
+                _logger?.LogDebug("Max context tokens set to {MaxTokens}", _maxContextTokens);
+            }
+
+            if (maxTurns.HasValue)
+            {
+                _maxTurns = maxTurns.Value;
+                _logger?.LogDebug("Max turns set to {MaxTurns}", _maxTurns);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error applying agent configuration.");
+            throw;
+        }
 
         return this;
     }
 
-
-    /// <summary>
-    /// Registers one or more LitePluginBase tool instances with the orchestrator.
-    /// </summary>
-    /// <param name="instances">The plugin/tool instances to register.</param>
-    /// <summary>
-    /// Registers one or more LitePluginBase tool types by resolving them from the Service Collection.
-    /// </summary>
-    /// <param name="pluginTypes">The types of the plugins to register.</param>
     internal void RegisterTools(params Type[] pluginTypes)
     {
         foreach (var type in pluginTypes)
         {
-            // Resolvemos la instancia desde el contenedor
+            _logger?.LogTrace("Resolving tool type: {TypeName}", type.Name);
             var instance = _serviceProvider.GetService(type);
 
             if (instance == null)
             {
+                _logger?.LogError("Failed to resolve tool: {TypeName}", type.Name);
                 throw new InvalidOperationException(
                     $"The tool '{type.Name}' could not be resolved from the Service Collection. " +
                     $"Make sure to register '{type.Name}' in your DI container (e.g., services.AddSingleton<{type.Name}>()) " +
@@ -60,56 +77,56 @@ public class LiteOrchestratorAgent
             }
 
             _liteActions.RegisterKit(instance);
+            _logger?.LogDebug("Tool registered successfully: {TypeName}", type.Name);
         }
     }
 
-    /// <summary>
-    /// Registers one or more LitePluginBase tool instances directly. Use this method when the tool instances
-    /// are not managed by the service provider (DI container) but are created manually or elsewhere.
-    /// </summary>
-    /// <param name="instances">The plugin/tool instances to register.</param>
     public void RegisterToolInstances(params object[] instances)
     {
-        foreach (var instance in instances)
+        try
         {
-            _liteActions.RegisterKit(instance);
+            foreach (var instance in instances)
+            {
+                var typeName = instance.GetType().Name;
+                _liteActions.RegisterKit(instance);
+                _logger?.LogDebug("Manual tool instance registered: {TypeName}", typeName);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error registering manual tool instances.");
+            throw;
         }
     }
 
-    /// <summary>
-    /// Configures the AI client with the specified temperature and maximum token count.
-    /// </summary>
-    /// <param name="temperature">The temperature value for the AI model (default is 0.7).</param>
-    /// <param name="maxTokens">The maximum number of tokens for the AI model (default is 1000).</param>
-    public void Configure(float temperature = 0.7f, int maxTokens = 1000)
+    public void Configure(float temperature = 0.7f, int maxTokens = 1000, int maxTurns = 10)
     {
+        _logger?.LogDebug("Updating Agent config: Temp={Temp}, MaxTokens={Tokens}, MaxTurns={Turns}",
+            temperature, maxTokens, maxTurns);
+
         _aiClient.SetTemperature(temperature);
         _aiClient.SetMaxTokens(maxTokens);
+        _maxTurns = maxTurns;
     }
 
-    /// <summary>
-    /// Adds custom context information for the agent to use in its responses. This method is optional and can be used to provide additional instructions or background for the agent.
-    /// </summary>
-    /// <param name="context">The custom context string to append for the agent.</param>
     public void AddContext(string context)
     {
+        _logger?.LogTrace("Custom context appended.");
         _customContext += context + "\n";
     }
-    /// <summary>
-    /// Sends a message to the agent and returns the response. Optionally controls whether the agent maintains conversation history.
-    /// </summary>
-    /// <param name="userMessage">The message from the user to send to the agent.</param>
-    /// <param name="stateless">If true, the agent will not remember previous messages after responding; if false, conversation history from current instance is preserved for future interactions.</param>
-    /// <returns>The agent's response as a string.</returns>
+
     public async Task<string> SendMessageAsync(string userMessage, bool stateless = true)
     {
+        _liteActions.ResetRetryCounters();
+        _logger?.LogInformation("Starting SendMessageAsync (Stateless: {Stateless})", stateless);
+
         var history = stateless ? new List<LiteMessage>() : _history;
 
-        // 1. Initialize history with System Instructions if empty
         if (history.Count == 0)
         {
+            _logger?.LogDebug("Initializing history with system instructions.");
             history.Add(new LiteMessage(Roles.System, _liteActions.GetSystemInstructions()));
-            
+
             if (!string.IsNullOrWhiteSpace(_customContext))
                 history.Add(new LiteMessage(Roles.System, "Without ignoring the previous instructions, " + _customContext));
         }
@@ -117,106 +134,128 @@ public class LiteOrchestratorAgent
         history.Add(new LiteMessage(Roles.User, userMessage));
         PruneHistory(history);
 
-        // 2. Start the Agentic Loop
-        while (true)
-        {
-            string rawResponse = await _aiClient.GetCompletionAsync(history);
+        int turnCount = 0;
 
-            // 3. Try to execute a TOON tool
+        while (turnCount < _maxTurns)
+        {
+            turnCount++;
+            _logger?.LogDebug("Agentic Loop Turn #{Turn}", turnCount);
+
+            string rawResponse = await _aiClient.GetCompletionAsync(history);
+            _logger?.LogTrace("LLM Raw Response: {Response}", rawResponse);
+
             string executionResult = await _liteActions.ExecuteMatchAsync(rawResponse);
 
-            // If the result is the same as rawResponse, it's just text for the user
             if (executionResult == rawResponse)
             {
+                _logger?.LogInformation("Final response reached after {Turn} turns.", turnCount);
                 history.Add(new LiteMessage(Roles.Assistant, rawResponse));
-
                 return rawResponse;
             }
 
-            // If it's different, a tool was executed. Feed the result back to the LLM.
+            if (executionResult.StartsWith("FIX_ATTEMPT:"))
+            {
+                _logger?.LogWarning("Tool execution failed. Retrying turn to allow LLM to self-correct. Error: {Result}", executionResult);
+            }
+            else
+            {
+                _logger?.LogInformation("Tool executed. Result: {Result}", executionResult);
+            }
+
             history.Add(new LiteMessage(Roles.Assistant, rawResponse));
             history.Add(new LiteMessage(Roles.User, $"TOOL_RESULT: {executionResult}"));
 
-            // Loop again so the LLM can process the tool result
+            PruneHistory(history);
         }
+
+        _logger?.LogError("Max turns ({MaxTurns}) reached without a final response.", _maxTurns);
+        return "Error: Maximum agentic turns reached without a conclusion.";
     }
-    /// <summary>
-    /// Sends a message using an external history. The agent will inject system instructions 
-    /// and custom context into this history before processing.
-    /// </summary>
-    /// <param name="userMessage">The message from the user.</param>
-    /// <param name="externalHistory">A list of messages representing the conversation state.</param>
-    /// <returns>The agent's response.</returns>
+
     public async Task<string> SendMessageAsync(string userMessage, List<LiteMessage> externalHistory)
     {
-        // 1. Ensure system instructions and custom context are present in the provided history
+        _liteActions.ResetRetryCounters();
+        _logger?.LogInformation("Starting SendMessageAsync with External History.");
+
         EnsureSystemContext(externalHistory);
-
-        // 2. Add the new user message
         externalHistory.Add(new LiteMessage(Roles.User, userMessage));
-
-        // 3. Prune history based on max context window
         PruneHistory(externalHistory);
 
-        // 4. Start the Agentic Loop
-        while (true)
-        {
-            string rawResponse = await _aiClient.GetCompletionAsync(externalHistory);
+        int turnCount = 0;
 
-            // 5. Try to execute a match
+        while (turnCount < _maxTurns)
+        {
+            turnCount++;
+            _logger?.LogDebug("Agentic Loop Turn #{Turn} (External History)", turnCount);
+
+            string rawResponse = await _aiClient.GetCompletionAsync(externalHistory);
+            _logger?.LogTrace("LLM Raw Response (External History): {Response}", rawResponse);
+
             string executionResult = await _liteActions.ExecuteMatchAsync(rawResponse);
 
-            // If it's pure text, append to history and return
             if (executionResult == rawResponse)
             {
+                _logger?.LogInformation("Final response reached after {Turn} turns (External History).", turnCount);
                 externalHistory.Add(new LiteMessage(Roles.Assistant, rawResponse));
                 return rawResponse;
             }
 
-            // If a tool was triggered, record the tool call and the result
+            if (executionResult.StartsWith("FIX_ATTEMPT:"))
+            {
+                _logger?.LogWarning("Tool execution failed. Retrying turn to allow LLM to self-correct. Error: {Result}", executionResult);
+            }
+            else
+            {
+                _logger?.LogInformation("Tool executed (External History). Result: {Result}", executionResult);
+            }
+
             externalHistory.Add(new LiteMessage(Roles.Assistant, rawResponse));
             externalHistory.Add(new LiteMessage(Roles.User, $"TOOL_RESULT: {executionResult}"));
 
-            // Prune again if the tool result was too large
             PruneHistory(externalHistory);
         }
+
+        _logger?.LogError("Max turns ({MaxTurns}) reached in External History loop without a final response.", _maxTurns);
+        return "Error: Maximum agentic turns reached without a conclusion.";
     }
 
-    /// <summary>
-    /// Helper to inject system instructions and custom context if they are missing.
-    /// </summary>
     private void EnsureSystemContext(List<LiteMessage> history)
     {
-        // Get base instructions from the registered tools
         string systemInstructions = _liteActions.GetSystemInstructions();
 
-        // Check if instructions are already present to avoid duplicates
         if (!history.Any(m => m.Role == Roles.System && m.Content.Contains(systemInstructions)))
         {
+            _logger?.LogDebug("Injecting missing base system instructions.");
             history.Insert(0, new LiteMessage(Roles.System, systemInstructions));
         }
 
-        // Inject custom context if provided and not already in history
         if (!string.IsNullOrWhiteSpace(_customContext) &&
             !history.Any(m => m.Role == Roles.System && m.Content.Contains(_customContext)))
         {
+            _logger?.LogDebug("Injecting custom context into history.");
             history.Add(new LiteMessage(Roles.System, "Without ignoring the previous instructions, " + _customContext));
         }
     }
 
-    // Update PruneHistory to accept a specific list
     private void PruneHistory(List<LiteMessage> history)
     {
         var systemMessages = history.Where(m => m.Role == Roles.System).ToList();
         var conversationalMessages = history.Where(m => m.Role != Roles.System).ToList();
 
-        while (EstimateTokens(history) > _maxContextTokens && conversationalMessages.Count > 1)
+        int currentEstimate = EstimateTokens(history);
+        if (currentEstimate > _maxContextTokens)
         {
-            conversationalMessages.RemoveAt(0);
+            _logger?.LogWarning("History exceeds token limit ({Current} > {Max}). Pruning oldest messages...", currentEstimate, _maxContextTokens);
 
-            history.Clear();
-            history.AddRange(systemMessages);
-            history.AddRange(conversationalMessages);
+            while (EstimateTokens(history) > _maxContextTokens && conversationalMessages.Count > 1)
+            {
+                conversationalMessages.RemoveAt(0);
+                history.Clear();
+                history.AddRange(systemMessages);
+                history.AddRange(conversationalMessages);
+            }
+
+            _logger?.LogDebug("Pruning complete. New estimate: {NewEstimate}", EstimateTokens(history));
         }
     }
 
@@ -225,4 +264,3 @@ public class LiteOrchestratorAgent
         return messages.Sum(m => m.Content.Length / 4);
     }
 }
-
