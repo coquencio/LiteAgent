@@ -17,7 +17,7 @@ public class LiteClaudeClient : ILiteClient
         _modelName = modelName;
     }
 
-    public async Task<string> GetCompletionAsync(List<LiteMessage> history)
+    public async Task<LiteResponse> GetCompletionAsync(List<LiteMessage> history)
     {
         var systemInstructions = history
             .Where(m => m.Role == Roles.System)
@@ -48,8 +48,15 @@ public class LiteClaudeClient : ILiteClient
         };
 
         var response = await _client.Messages.GetClaudeMessageAsync(request);
+        var content = response.Content.OfType<TextContent>().FirstOrDefault()?.Text ?? string.Empty;
 
-        return response.Content.OfType<Anthropic.SDK.Messaging.TextContent>().FirstOrDefault()?.Text ?? string.Empty;
+        var usage = new LiteUsage(
+            response.Usage.InputTokens,
+            response.Usage.OutputTokens,
+            response.Usage.InputTokens + response.Usage.OutputTokens
+        );
+
+        return new LiteResponse(content, usage);
     }
 
     public void SetMaxTokens(int maxTokens) => _maxTokens = maxTokens;

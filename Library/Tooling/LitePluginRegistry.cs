@@ -20,7 +20,8 @@ internal class LitePluginRegistry
                 Description = attr?.Description,
                 Method = method,
                 TargetInstance = instance,
-                Parameters = method.GetParameters()
+                Parameters = method.GetParameters(),
+                MaxRetries = attr?.MaxRetries ?? 0
             };
             if (_plugins.ContainsKey(definition.Name))
                 throw new InvalidOperationException($"A plugin with the name '{definition.Name}' is already registered.");

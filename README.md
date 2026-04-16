@@ -40,14 +40,14 @@ LiteAgent supports the most capable models in the industry through official and 
 
 ### 1\. Define your Tools
 
-Plugins are plain C\# classes to keep your code clean and decoupled. Simply decorate your methods with `[LitePlugin]` to make them discoverable.
+Plugins are plain C\# classes to keep your code clean and decoupled. Simply decorate your methods with `[LitePlugin]` to make them discoverable. If a call fails or the LLM uses wrong syntax, the agent uses MaxRetries (defaulted to 2) to self-correct and try again.
 
 ```csharp
 using LiteAgent.Tooling;
 
 public class BusinessTools
 {
-    [LitePlugin("Sends a greet asking for the name of the person")]
+    [LitePlugin("Sends a greet asking for the name of the person", maxRetries = 5)]
     public string Greet(string name) => $"Hello, {name}!";
 
     [LitePlugin("Retrieves items by category")]
@@ -90,6 +90,9 @@ builder.Services.AddLiteAgent(config =>
     config.SetMaxTokens(1000);
     // Sets the limit for the history pruning (Default: 128,000)
     config.SetMaxContextTokens(128000);
+    // Limits the agent's reasoning loop. Prevents infinite tool-calling 
+    // and protects your token budget from runaway execution.
+    config.SetMaxTurns(10);
 });
 
 using IHost host = builder.Build();
@@ -126,6 +129,7 @@ agent.Configure(temperature: 0.7f, maxTokens: 1000);
 // Start the conversation (stateless: true no memory is preserved after the response, false preserves conversation history)
 string response = await agent.SendMessageAsync("Greet Jorge and check the office inventory", stateless: true);
 
+
 Console.WriteLine($"Agent: {response}");
 ```
 
@@ -148,17 +152,26 @@ The agent manages a self-correcting cycle:
 
 1.  **System Prompt:** Injects dynamic TOON instructions and any `AddContext` data.
 2.  **Execute:** If the LLM generates a TOON string (e.g., `greet{Jorge}`), the agent executes the C\# method.
-3.  **Observe:** Results (including execution traces) are fed back to the model.
-4.  **Finalize:** The cycle repeats until the LLM provides a final natural language response.
+3. **Resiliency** (MaxRetries): If a tool call fails or has invalid syntax, the agent uses a feedback loop to attempt a fix without crashing the session.
+4.  **Observe:** Results (including execution traces) are fed back to the model.
+5.  **Finalize:** The cycle repeats until the LLM provides a final natural language response.
 
 ### Smart Dependency Resolution
 
 When using `AddPlugin<T>()`, the agent resolves the instance directly from your `IServiceProvider`. This allows your plugins to use their own injected dependencies (like DB Contexts or specialized services) via standard constructor injection.
 
+### Multi-Level Execution Governance
+LiteAgent provides granular control over the agent's "patience" and budget:
+
+* **MaxTurns**: Limits the total number of reasoning cycles per message to prevent infinite loops and runaway costs.
+
+* **MaxRetries**: Specifically limits how many times the agent can attempt to fix a single failing tool execution before giving up.
+
+* **Token Usage Tracking**: Use agent.GetTokenUsage() at any time to retrieve the accumulated Prompt, Completion, and Total tokens for the current session.
 
 ### **Sequence Orchestrator (Pipelines)**
 
-LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips between the LLM and your server, the agent can plan and execute a complex sequence of plugins in a single turn using `executesequence`.
+LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips between the LLM and your server, the agent can plan and execute a complex sequence of plugins in a single turn using `execute_sequence`.
 
 #### Features:
 
@@ -169,7 +182,7 @@ LiteAgent supports **Autonomous Chaining**. Instead of multiple round-trips betw
   * **Execution Trace:** Returns a summarized trace of each step: `[#1: get_user -> success] [#2: get_balance -> 500]`.
 
 **Example:**
-`executesequence{get_user{Jorge}|get_balance{$1.id}|send_email{$1.email|$2}}`
+`execute_sequence{get_user{Jorge}|get_balance{$1.id}|send_email{$1.email|$2}}`
 
 ### Smart Context Pruning
 

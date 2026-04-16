@@ -1,6 +1,4 @@
-﻿using LiteAgent.Tooling;
-
-namespace ChatConsoleApp
+﻿namespace ChatConsoleApp
 {
     internal class UserPlugin
     {

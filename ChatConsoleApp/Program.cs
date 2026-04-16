@@ -21,6 +21,7 @@ builder.Services.AddLiteAgent(config =>
     config.SetTemperature(0.7f);
     config.SetMaxTokens(1000);
     config.SetMaxContextTokens(128000);
+    config.SetMaxTurns(10);
 });
 
 var app = builder.Build();
@@ -28,5 +29,6 @@ var app = builder.Build();
 
 var agent = app.Services.GetRequiredService<LiteOrchestratorAgent>();
 agent.AddContext("You love to crack some silly jokes when returning final answers to the user");
-string response = await agent.SendMessageAsync("Get me user details of user johnDoe", true);
+string response = await agent.SendMessageAsync("Get email from user johnDoe and send an email with message 'Hi john!'", true);
 Console.WriteLine(response);
+Console.WriteLine(agent.GetTokenUsage());

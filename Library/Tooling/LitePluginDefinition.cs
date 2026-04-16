@@ -9,7 +9,7 @@ internal class LitePluginDefinition
     public MethodInfo Method { get; set; } = null!;
     public object TargetInstance { get; set; } = null!;
     public ParameterInfo[] Parameters { get; set; } = Array.Empty<ParameterInfo>();
-
+    public int MaxRetries { get; set; } = 0;
     public string ToSignature()
     {
         var returnType = Method.ReturnType;
@@ -49,7 +49,7 @@ internal class LitePluginDefinition
         }
 
         // 3. Complex Objects: (prop1:type,prop2:type)
-        var props = type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+        var props = type.GetProperties(BindingFlags.Public | System.Reflection.BindingFlags.Instance)
                         .Select(p => $"{p.Name.ToLower()}:{GetTypeDescriptor(p.PropertyType)}");
 
         return $"({string.Join(",", props)})";
