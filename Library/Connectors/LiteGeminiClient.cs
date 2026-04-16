@@ -16,7 +16,7 @@ public class LiteGeminiClient : ILiteClient
         _modelName = modelName;
     }
 
-    public async Task<string> GetCompletionAsync(List<LiteMessage> history)
+    public async Task<LiteResponse> GetCompletionAsync(List<LiteMessage> history)
     {
         var systemInstruction = string.Join("\n", history
             .Where(m => m.Role == Roles.System)
@@ -41,8 +41,14 @@ public class LiteGeminiClient : ILiteClient
         };
 
         var response = await _client.Models.GenerateContentAsync(_modelName, contents, config);
+        
+        var usage = new LiteUsage(
+            response.UsageMetadata?.PromptTokenCount ?? 0,
+            response.UsageMetadata?.CandidatesTokenCount ?? 0,
+            response.UsageMetadata?.TotalTokenCount ?? 0
+        );
 
-        return response.Text ?? string.Empty;
+        return new LiteResponse(response.Text ?? string.Empty, usage);
     }
 
     public void SetMaxTokens(int maxTokens) => _maxTokens = maxTokens;

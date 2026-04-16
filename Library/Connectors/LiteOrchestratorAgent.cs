@@ -15,6 +15,10 @@ public class LiteOrchestratorAgent
     private int _maxTurns = 10; // Default fallback
     private readonly ILogger<LiteOrchestratorAgent>? _logger;
 
+    private int _promptTokens = 0;
+    private int _completionTokens = 0;
+    private int _totalTokens = 0;
+
     public LiteOrchestratorAgent(ILiteClient aiClient, IServiceProvider serviceProvider, ILoggerFactory? loggerFactory)
     {
         _aiClient = aiClient;
@@ -24,7 +28,11 @@ public class LiteOrchestratorAgent
 
         _logger?.LogInformation("LiteOrchestratorAgent initialized.");
     }
-
+    /// <summary>
+    /// Returns total token usage from agent's instance.
+    /// </summary>
+    public LiteUsage GetTokenUsage() => new(_promptTokens, _completionTokens, _totalTokens);
+   
     internal LiteOrchestratorAgent WithConfiguration(int? maxTokens = default, float? temperature = default, int? maxContextTokens = default, int? maxTurns = default, params Type[] pluginTypes)
     {
         _logger?.LogDebug("Applying agent configuration...");
@@ -140,8 +148,17 @@ public class LiteOrchestratorAgent
         {
             turnCount++;
             _logger?.LogDebug("Agentic Loop Turn #{Turn}", turnCount);
+            
+            var response = await _aiClient.GetCompletionAsync(history);
+            // Token counters - accumulate usage for the entire conversation
+            _promptTokens += response.Usage.PromptTokens;
+            _completionTokens += response.Usage.CompletionTokens;
+            _totalTokens += response.Usage.TotalTokens;
+            _logger?.LogDebug("Token usage for this turn - Prompt: {Prompt}, Completion: {Completion}, Total: {Total}",
+                response.Usage.PromptTokens, response.Usage.CompletionTokens, response.Usage.TotalTokens);
 
-            string rawResponse = await _aiClient.GetCompletionAsync(history);
+            string rawResponse = response.Content;
+            
             _logger?.LogTrace("LLM Raw Response: {Response}", rawResponse);
 
             string executionResult = await _liteActions.ExecuteMatchAsync(rawResponse);
@@ -187,8 +204,16 @@ public class LiteOrchestratorAgent
         {
             turnCount++;
             _logger?.LogDebug("Agentic Loop Turn #{Turn} (External History)", turnCount);
+            var response = await _aiClient.GetCompletionAsync(externalHistory);
+            // Token counters - accumulate usage for the entire conversation
+            _promptTokens += response.Usage.PromptTokens;
+            _completionTokens += response.Usage.CompletionTokens;
+            _totalTokens += response.Usage.TotalTokens;
+            _logger?.LogDebug("Token usage for this turn - Prompt: {Prompt}, Completion: {Completion}, Total: {Total}",
+                response.Usage.PromptTokens, response.Usage.CompletionTokens, response.Usage.TotalTokens);
 
-            string rawResponse = await _aiClient.GetCompletionAsync(externalHistory);
+            string rawResponse = response.Content;
+
             _logger?.LogTrace("LLM Raw Response (External History): {Response}", rawResponse);
 
             string executionResult = await _liteActions.ExecuteMatchAsync(rawResponse);

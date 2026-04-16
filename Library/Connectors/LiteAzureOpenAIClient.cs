@@ -20,7 +20,7 @@ public class LiteAzureOpenAIClient : ILiteClient
         _endpoint = endpoint;
         _chatClient = GetChatClient();
     }
-    public async Task<string> GetCompletionAsync(List<LiteMessage> history)
+    public async Task<LiteResponse> GetCompletionAsync(List<LiteMessage> history)
     {
         var messages = new List<ChatMessage>();
         foreach (var h in history)
@@ -37,8 +37,15 @@ public class LiteAzureOpenAIClient : ILiteClient
         };
 
         var response = await _chatClient.CompleteChatAsync(messages.ToArray(), options);
+        var completion = response.Value;
 
-        return response.Value.Content[0].Text;
+        var usage = new LiteUsage(
+            completion.Usage.InputTokenCount,
+            completion.Usage.OutputTokenCount,
+            completion.Usage.TotalTokenCount
+        );
+
+        return new LiteResponse(completion.Content[0].Text, usage);
     }
 
     public void SetMaxTokens(int maxTokens) =>
