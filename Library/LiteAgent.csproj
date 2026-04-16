@@ -7,7 +7,7 @@
     
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>LiteAgent</PackageId>
-    <Version>0.1.4-preview1</Version>
+    <Version>0.1.5</Version>
     <Authors>Coquencio</Authors>
     <Description>A high-performance, token-efficient tool-calling library for .NET. Replaces JSON with TOON for 80% token savings.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
