@@ -1,4 +1,4 @@
-# LiteAgent (Preview)
+# LiteAgent
 
 [![NuGet version](https://img.shields.io/nuget/v/LiteAgent.svg?style=flat-square)](https://www.nuget.org/packages/LiteAgent/)
 
