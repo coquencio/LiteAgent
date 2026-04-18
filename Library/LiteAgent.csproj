@@ -7,7 +7,10 @@
     
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>LiteAgent</PackageId>
-    <Version>0.1.6</Version>
+    <Version>0.1.7</Version>
+    <RepositoryType>git</RepositoryType>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReleaseNotes>v0.1.7: Include packaged documentation and update package metadata.</PackageReleaseNotes>
     <Authors>Coquencio</Authors>
     <Description>A high-performance, token-efficient tool-calling library for .NET. Replaces JSON with TOON for 80% token savings.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -25,6 +28,7 @@
 
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\Docs\**\*" Pack="true" PackagePath="docs\" />
   </ItemGroup>
 
 </Project>
