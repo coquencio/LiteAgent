@@ -1,4 +1,4 @@
-# LiteAgent
+# LiteAgent [![NuGet version](https://img.shields.io/nuget/v/LiteAgent.svg?style=flat-square)](https://www.nuget.org/packages/LiteAgent/)
 
 LiteAgent is a compact, token-efficient AI agent tool-calling library for .NET. It uses a text-first, TOON (Token-Oriented Object Notation) protocol to represent tool calls and provides a lightweight orchestration runtime for executing plugin methods.
 
