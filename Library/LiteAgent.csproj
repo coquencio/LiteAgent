@@ -7,7 +7,7 @@
     
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>LiteAgent</PackageId>
-    <Version>0.1.8</Version>
+    <Version>0.1.9</Version>
     <RepositoryType>git</RepositoryType>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Authors>Coquencio</Authors>
@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\Docs\README.md" Pack="true" PackagePath="\" />
     <None Include="..\Docs\**\*" Pack="true" PackagePath="docs\" />
   </ItemGroup>
 

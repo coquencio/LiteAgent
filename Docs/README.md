@@ -12,7 +12,7 @@ Installation
 Install the published package from NuGet:
 
 ```bash
-dotnet add package LiteAgent --version 0.1.8
+dotnet add package LiteAgent --version 0.1.9
 ```
 
 Or use the NuGet package manager UI to add `LiteAgent`.
@@ -21,6 +21,6 @@ If you are consuming the source package directly, ensure your project targets `.
 
 Recommended reading order
 
-1. `QuickStart.md` — minimal working example to get an agent running.
-2. `CoreConcepts.md` — TOON format, plugins, orchestration, and token handling.
-3. `API.md` — public types, extension methods, and configuration API.
+1. `QuickStart.md`https://github.com/coquencio/LiteAgent/blob/main/Docs/QuickStart.md — minimal working example to get an agent running.
+2. `CoreConcepts.md`https://github.com/coquencio/LiteAgent/blob/main/Docs/CoreConcepts.md — TOON format, plugins, orchestration, and token handling.
+3. `API.md`https://github.com/coquencio/LiteAgent/blob/main/Docs/API.md — public types, extension methods, and configuration API.

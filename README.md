@@ -209,7 +209,7 @@ NuGet package
 - Install (current):
 
 ```bash
-dotnet add package LiteAgent --version 0.1.8
+dotnet add package LiteAgent --version 0.1.9
 ```
 ---
 ## License
