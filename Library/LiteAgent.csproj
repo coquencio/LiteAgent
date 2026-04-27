@@ -7,7 +7,12 @@
     
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>LiteAgent</PackageId>
-    <Version>0.1.9</Version>
+    <Version>0.1.10</Version>
+	<PackageReleaseNotes>
+		- High-performance tool invocation: Replaced Reflection-based execution with dynamically compiled Lambdas (Expression Trees).
+		- Significantly reduced execution latency for tool calls.
+		- Improved stability for async and sync plugin methods.
+	</PackageReleaseNotes>
     <RepositoryType>git</RepositoryType>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Authors>Coquencio</Authors>

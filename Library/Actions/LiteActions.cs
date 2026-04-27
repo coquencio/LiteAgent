@@ -77,10 +77,10 @@ internal class LiteActions
         {
             _logger?.LogTrace("Mapping arguments for method: {MethodName}", definition.Method.Name);
             var parameters = _parser.MapArguments(definition.Parameters, call.Arguments);
-
-            _logger?.LogInformation("Invoking plugin method: {MethodName}", definition.Method.Name);
-            var result = definition.Method.Invoke(definition.TargetInstance, parameters);
-
+           
+            _logger?.LogInformation("Invoking plugin lambda: {MethodName}", call.FunctionName);
+            var result = await definition.Handler!(parameters!); 
+            
             // If successful, reset retry counter for this function
             _retryTracker[call.FunctionName] = 0;
 

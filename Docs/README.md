@@ -12,7 +12,7 @@ Installation
 Install the published package from NuGet:
 
 ```bash
-dotnet add package LiteAgent --version 0.1.9
+dotnet add package LiteAgent --version 0.1.10
 ```
 
 Or use the NuGet package manager UI to add `LiteAgent`.

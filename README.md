@@ -25,7 +25,7 @@ LiteAgent supports the most capable models in the industry through official and 
 ## Project Structure
 
   - **Connectors:** Pluggable AI clients (ILiteClient) for Azure, Gemini, Claude, and local models.
-  - **Actions:** The core engine that parses TOON and executes methods via reflection (`LiteActions`).
+  - **Actions:** The core engine that parses TOON and executes methods via compiled delegates for high-performance tool invocation (LiteActions).
   - **Tooling:** Plugin system and attributes (`[LitePlugin]`) to expose code efficiently.
   - **Extensions:** Fluent API for seamless .NET Dependency Injection.
   - **Constants:** Shared definitions like Roles for messaging.
@@ -209,7 +209,7 @@ NuGet package
 - Install (current):
 
 ```bash
-dotnet add package LiteAgent --version 0.1.9
+dotnet add package LiteAgent --version 0.1.10
 ```
 ---
 ## License

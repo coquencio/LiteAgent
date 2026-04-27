@@ -1,6 +1,4 @@
-﻿using System;
-
-[AttributeUsage(AttributeTargets.Method)]
+﻿[AttributeUsage(AttributeTargets.Method)]
 public sealed class LitePlugin : Attribute
 {
     /// <summary>

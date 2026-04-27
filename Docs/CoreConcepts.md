@@ -14,7 +14,7 @@ Plugin registration and discovery
 
 Agentic loop (Think → Act → Observe)
 - The `LiteOrchestratorAgent` sends a system prompt + conversation history to the configured `ILiteClient`.
-- If the LLM returns a TOON call, the agent attempts to parse and execute it via reflection.
+- If the LLM returns a TOON call, the agent parses and executes it through pre-compiled lambdas for near-native performance.
 - After execution, results are fed back into the conversation as `TOOL_RESULT: ...` and the loop repeats until the model returns a natural-language final answer or the configured `MaxTurns` is reached.
 
 History management
@@ -59,4 +59,4 @@ Public vs internal surface
 - Internal (implementation details): `LiteActions`, `PluginParser`, `LitePluginRegistry`, `SequencePlugin`, `PromptGenerator`. These are subject to change.
 
 Security and safety
-- The library executes application code via reflection when invoking plugin methods. Only register trusted plugin classes and avoid exposing untrusted instances to the agent.
+- The library executes application code via dynamically compiled delegates when invoking plugin methods. Only register trusted plugin classes and avoid exposing untrusted instances to the agent.

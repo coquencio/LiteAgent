@@ -10,6 +10,7 @@ internal class LitePluginDefinition
     public object TargetInstance { get; set; } = null!;
     public ParameterInfo[] Parameters { get; set; } = Array.Empty<ParameterInfo>();
     public int MaxRetries { get; set; } = 0;
+    public Func<object[], Task<object?>>? Handler { get; set; }
     public string ToSignature()
     {
         var returnType = Method.ReturnType;
