@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Linq.Expressions;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace LiteAgent.Tooling;
@@ -21,7 +22,8 @@ internal class LitePluginRegistry
                 Method = method,
                 TargetInstance = instance,
                 Parameters = method.GetParameters(),
-                MaxRetries = attr?.MaxRetries ?? 0
+                MaxRetries = attr?.MaxRetries ?? 0,
+                Handler = CompileMethod(instance, method)
             };
             if (_plugins.ContainsKey(definition.Name))
                 throw new InvalidOperationException($"A plugin with the name '{definition.Name}' is already registered.");
@@ -41,6 +43,39 @@ internal class LitePluginRegistry
     }
     public string GetPluginCatalog() =>
         string.Join("\n", _plugins.Values.Select(v => v.ToSignature()));
-    
+
+    private Func<object[], Task<object?>> CompileMethod(object instance, MethodInfo method)
+    {
+        var paramsExp = Expression.Parameter(typeof(object[]), "args");
+        var instanceExp = Expression.Constant(instance);
+
+        var methodParameters = method.GetParameters();
+        var argumentExpressions = methodParameters.Length > 0 ? methodParameters.Select((p, i) =>
+        {
+            var indexExp = Expression.ArrayIndex(paramsExp, Expression.Constant(i));
+            return Expression.Convert(indexExp, p.ParameterType);
+        }).ToArray() : Array.Empty<Expression>();
+
+        var callExp = Expression.Call(instanceExp, method, argumentExpressions);
+
+        if (typeof(Task).IsAssignableFrom(method.ReturnType))
+        {
+            return async (args) =>
+            {
+                var result = method.Invoke(instance, args);
+                var task = (Task)result!;
+                await task;
+
+                var resultProp = task.GetType().GetProperty("Result");
+                return resultProp?.GetValue(task);
+            };
+        }
+
+        var convertedCall = Expression.Convert(callExp, typeof(object));
+        var lambda = Expression.Lambda<Func<object[], object>>(convertedCall, paramsExp).Compile();
+
+        return (args) => Task.FromResult<object?>(lambda(args));
+    }
+
 }
 

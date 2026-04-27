@@ -66,16 +66,13 @@ internal class SequencePlugin(ILogger<SequencePlugin>? logger)
 
             try
             {
-                // 3. Execution via Reflection
+                // 3. Execution via Compiled Lambda
                 _logger?.LogDebug("Executing Step #{Index} ({FunctionName})...", stepIndex, call.FunctionName);
-                var parameters = _parser.MapArguments(definition.Parameters, call.Arguments);
-                var result = definition.Method.Invoke(definition.TargetInstance, parameters);
+                var parameters = _parser.MapArguments(definition.Parameters, call.Arguments); var result = definition.Method.Invoke(definition.TargetInstance, parameters);
 
-                // 4. Resolve async Task and Normalize output to TOON format
-                object? rawOutput = result is Task task
-                    ? await ResolveTaskResult(task)
-                    : result;
-
+                // 4. Execute handler
+                object? rawOutput = await definition.Handler!(parameters!);
+                
                 string output = NormalizeToToon(rawOutput);
                 stepResults.Add(output);
 
